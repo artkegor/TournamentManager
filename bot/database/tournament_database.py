@@ -57,6 +57,15 @@ def get_tournament_status_by_id(tournament_id):
     return tournament_doc.get('status', None)
 
 
+def get_tournament_users_by_id(tournament_id):
+    tournament_doc = collection.find_one({"id": tournament_id})
+
+    if not tournament_doc:
+        return None
+
+    return tournament_doc.get('users', None)
+
+
 # Получаем турнир по ID чата
 def find_tournament_by_chat_id(chat_id):
     tournament_doc = collection.find_one({"chat": chat_id})

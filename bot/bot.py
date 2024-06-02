@@ -80,6 +80,16 @@ def callback_query(call):
                         time.sleep(1)
                         if tr_db.get_tournament_status_by_id(tournament_id) == 'going':
                             break
+                        else:
+                            users = tr_db.get_tournament_users_by_id(tournament_id)
+                            try:
+                                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                                      text='Турнир создан.\n'
+                                                           'До конца регистрации 30 секунд.\n\n'
+                                                           f'Присоединились: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}',
+                                                      reply_markup=mk.new_tournament(tournament_id))
+                            except:
+                                pass
 
                     tr_db.update_tournament_status(tournament_id, 'going')
                     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
@@ -93,10 +103,11 @@ def callback_query(call):
 
 @bot.message_handler(commands=['launch'])
 def launch_tournament(message):
-    tour_id = tr_db.find_tournament_by_chat_id(message.chat.id)
-    if tour_id:
-        tr_db.update_tournament_status(tour_id, 'going')
-        bot.send_message(message.chat.id, 'Регистрация кончилась.\n'
-                                          'А мы начинаем!')
-    else:
-        bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
+    if message.chat.type in ['group', 'supergroup']:
+        tour_id = tr_db.find_tournament_by_chat_id(message.chat.id)
+        if tour_id:
+            tr_db.update_tournament_status(tour_id, 'going')
+            bot.send_message(message.chat.id, 'Регистрация кончилась.\n'
+                                              'А мы начинаем!')
+        else:
+            bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
