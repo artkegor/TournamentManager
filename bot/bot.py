@@ -7,6 +7,7 @@ from config import bot
 import bot.keyboards.inline as mk
 import bot.database.user_database as user_db
 import bot.database.tournament_database as tr_db
+import bot.utilities.tournament_helper as helper
 
 bot.set_my_commands(commands=[types.BotCommand('/start', 'Перезапустить бота'),
                               types.BotCommand('/help', 'Помощь'),
@@ -76,8 +77,8 @@ def callback_query(call):
                                       reply_markup=mk.new_tournament(tournament_id))
 
                 def starter_func():
-                    for i in range(10):
-                        time.sleep(1)
+                    for i in range(100):
+                        time.sleep(4)
                         if tr_db.get_tournament_status_by_id(tournament_id) == 'going':
                             break
                         else:
@@ -92,9 +93,14 @@ def callback_query(call):
                                 pass
 
                     tr_db.update_tournament_status(tournament_id, 'going')
+                    print(tr_db.get_tournament_users_by_id(tournament_id))
+                    games = helper.round_robin(tr_db.get_tournament_users_by_id(tournament_id))
+
+                    # DELETE и SEND
                     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                           text='Регистрация кончилась.\n'
-                                               'А мы начинаем!')
+                                               'А мы начинаем!\n\n'
+                                               f'Пары: {games}')
 
                 threading.Thread(target=starter_func()).start()
     else:
@@ -103,11 +109,21 @@ def callback_query(call):
 
 @bot.message_handler(commands=['launch'])
 def launch_tournament(message):
+    # МЕНЯЕМ И БОТ САМ СКАНИРУЕТ
     if message.chat.type in ['group', 'supergroup']:
-        tour_id = tr_db.find_tournament_by_chat_id(message.chat.id)
-        if tour_id:
-            tr_db.update_tournament_status(tour_id, 'going')
+        tournament_id = tr_db.find_tournament_by_chat_id(message.chat.id)
+        if tournament_id:
+            print(tr_db.get_tournament_users_by_id(tournament_id))
+            games = helper.round_robin(tr_db.get_tournament_users_by_id(tournament_id))
+            tr_db.update_tournament_status(tournament_id, 'going')
             bot.send_message(message.chat.id, 'Регистрация кончилась.\n'
-                                              'А мы начинаем!')
+                                              'А мы начинаем!\n\n'
+                                              f'Пары: {games}')
         else:
             bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
+
+
+@bot.message_handler(commands=['delete'])
+def launch_tournament(message):
+    tr_db.delete_tournament_by_chat_id(message.chat.id)
+    bot.send_message(message.chat.id, 'удалено')

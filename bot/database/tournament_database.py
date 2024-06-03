@@ -73,3 +73,7 @@ def find_tournament_by_chat_id(chat_id):
         return tournament_doc['id']
     except NotImplementedError:
         return None
+
+
+def delete_tournament_by_chat_id(chat_id):
+    collection.delete_one({"chat": chat_id})
