@@ -1,4 +1,5 @@
 import pymongo
+from datetime import timedelta, datetime
 
 client = pymongo.MongoClient('mongodb://localhost:27017/')
 db = client['Tournaments']
@@ -18,7 +19,8 @@ def insert_tournament(tournament_id, chat_id, name, status):
         "chat": chat_id,
         "name": name,
         "status": status,
-        "users": []
+        "users": [],
+        "games": []
     }
 
     collection.insert_one(new_tournament)
@@ -42,6 +44,32 @@ def add_user_to_tournament(tournament_id, user_id):
     return 'good'
 
 
+# Вставляем расписание в игру
+def insert_schedule_to_tournament(schedule_list, tournament_id):
+    tournament = collection.find_one({"id": tournament_id})
+
+    if tournament:
+        game_id_counter = len(tournament.get("games", [])) + 1
+        start_date = datetime.now().date()
+
+        for game_set_index, game_set in enumerate(schedule_list):
+            game_set_date = start_date + timedelta(days=game_set_index + 1)
+
+            for game in game_set:
+                game_doc = {
+                    "game_id": game_id_counter,
+                    "date": game_set_date.strftime("%d/%m/%y"),
+                    "first_player": game[0],
+                    "second_player": game[1],
+                    "games_left": 2
+                }
+
+                tournament["games"].append(game_doc)
+                game_id_counter += 1
+
+        collection.update_one({"id": tournament_id}, {"$set": tournament})
+
+
 # Обновляем статус турнира
 def update_tournament_status(tournament_id, status):
     collection.update_one({'id': tournament_id}, {'$set': {'status': status}})
@@ -57,6 +85,7 @@ def get_tournament_status_by_id(tournament_id):
     return tournament_doc.get('status', None)
 
 
+# Получаем участников по ID
 def get_tournament_users_by_id(tournament_id):
     tournament_doc = collection.find_one({"id": tournament_id})
 
@@ -75,5 +104,6 @@ def find_tournament_by_chat_id(chat_id):
         return None
 
 
+# Удаляем турнир
 def delete_tournament_by_chat_id(chat_id):
     collection.delete_one({"chat": chat_id})
