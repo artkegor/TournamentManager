@@ -53,7 +53,10 @@ def insert_schedule_to_tournament(schedule_list, tournament_id):
         start_date = datetime.now().date()
 
         for game_set_index, game_set in enumerate(schedule_list):
-            game_set_date = start_date + timedelta(days=game_set_index + 1)
+            if game_set_index == 0:
+                game_set_date = start_date
+            else:
+                game_set_date = start_date + timedelta(days=(game_set_index * 2))
 
             for game in game_set:
                 game_doc = {
