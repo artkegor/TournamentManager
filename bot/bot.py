@@ -96,12 +96,23 @@ def callback_query(call):
                     games = helper.round_robin(tr_db.get_tournament_users_by_id(tournament_id))
 
                     bot.delete_message(call.message.chat.id, call.message.message_id)
-
                     bot.send_message(call.message.chat.id, 'Регистрация окончена!\n'
                                                            'Формирую расписание игр...')
 
                     tr_db.insert_schedule_to_tournament(games, tournament_id)
 
+                    for item in games:
+                        if isinstance(item, list):
+                            new_item = []
+                            for subitem in item:
+                                if isinstance(subitem, tuple):
+                                    new_subitem = (
+                                        bot.get_chat_member(call.message.chat.id, subitem[0]),
+                                        bot.get_chat_member(call.message.chat.id, subitem[1]))
+                                    new_item.append(new_subitem)
+                            item[:] = new_item
+
+                    helper.generate_and_save_tables(games)
                     bot.send_message(chat_id=call.message.chat.id,
                                      text='Расписание сформировано!\n'
                                           'Подробнее в базе данных. 😿')

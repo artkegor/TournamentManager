@@ -5,6 +5,7 @@ db = client['Tournaments']
 collection = db['users']
 
 
+# Вывод всех данных (для дебага)
 def print_all_data(collection):
     for document in collection.find:
         print(document)
