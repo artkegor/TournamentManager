@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import io
 from datetime import datetime, timedelta
+from glob import glob
 
 # Константы
-plt.rcParams['figure.dpi'] = 800
-plt.rcParams['savefig.dpi'] = 800
+plt.rcParams['figure.dpi'] = 400
+plt.rcParams['savefig.dpi'] = 400
 plt.rcParams['font.family'] = 'sans-serif'
 
 
@@ -25,7 +26,7 @@ def round_robin(teams):
 
 
 # Создаем и сохраняем фото
-def generate_and_save_tables(data):
+def generate_and_save_tables(data, tournament_id):
     today_date = datetime.now()
     for idx, d in enumerate(data):
         date_str = today_date.strftime("%d/%m/%Y")
@@ -60,6 +61,6 @@ def generate_and_save_tables(data):
         fig.savefig(buf, format='png', bbox_inches='tight')
         buf.seek(0)
         img = Image.open(buf)
-        img.save(f'table_{idx}.png')
+        img.save(f'bot/utilities/data/{tournament_id}_{idx}.png')
 
         today_date += timedelta(days=2)
