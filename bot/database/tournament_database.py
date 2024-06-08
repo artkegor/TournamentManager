@@ -14,6 +14,11 @@ def print_all_data():
 
 # Вставляем в БД новый турнир
 def insert_tournament(tournament_id, chat_id, name, status):
+    existing_tournament = collection.find_one({"chat": chat_id})
+
+    if existing_tournament:
+        collection.delete_one({"chat": chat_id})
+
     new_tournament = {
         "id": tournament_id,
         "chat": chat_id,

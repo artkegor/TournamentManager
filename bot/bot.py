@@ -19,6 +19,7 @@ bot.set_my_commands(commands=[types.BotCommand('/start', 'Перезапусти
 @bot.message_handler(commands=['start', 'help'])
 def start_message(message):
     if message.chat.type in ['group', 'supergroup']:
+        threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
         bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}! 👋\n\n'
                                           f'Чтобы посмотреть статистику текущего турнира введи /table 🏆\n\n'
                                           f'Если хочешь ввести результат игры то отметь меня, '
@@ -80,7 +81,7 @@ def callback_query(call):
 
                 def starter_func():
                     for i in range(300):
-                        time.sleep(4)
+                        time.sleep(3)
                         if tr_db.get_tournament_status_by_id(tournament_id) == 'going':
                             break
                         else:
@@ -96,10 +97,12 @@ def callback_query(call):
 
                     tr_db.update_tournament_status(tournament_id, 'going')
                     games = helper.round_robin(tr_db.get_tournament_users_by_id(tournament_id))
+                    users = tr_db.get_tournament_users_by_id(tournament_id)
 
                     bot.delete_message(call.message.chat.id, call.message.message_id)
                     bot.send_message(call.message.chat.id, 'Регистрация окончена!\n'
-                                                           'Формирую расписание игр...')
+                                                           'Формирую расписание игр...\n\n'
+                                                           f'🫂 На турнир зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}')
 
                     tr_db.insert_schedule_to_tournament(games, tournament_id)
 
@@ -134,6 +137,7 @@ def callback_query(call):
 
 @bot.message_handler(commands=['launch'])
 def launch_tournament(message):
+    threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
     if message.chat.type in ['group', 'supergroup']:
         tournament_id = tr_db.find_tournament_by_chat_id(message.chat.id)
         if tournament_id:
