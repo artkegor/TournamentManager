@@ -1,8 +1,6 @@
-import os
 import random
 import threading
 import time
-import glob
 
 from telebot import types
 from config import bot
@@ -130,18 +128,11 @@ def callback_query(call):
                                         new_item.append(new_subitem)
                                 item[:] = new_item
 
-                        helper.generate_and_save_tables(games, tournament_id)
-                        photo_files = glob.glob(f'bot/utilities/data/{tournament_id}*.png')
-                        media_group = []
-                        for photo_file in photo_files:
-                            filename = os.path.basename(photo_file)
-                            if '_0' in filename:
-                                media_group.append(
-                                    types.InputMediaPhoto(open(photo_file, 'rb'), caption='Расписание игр! ☝'))
-                            else:
-                                media_group.append(types.InputMediaPhoto(open(photo_file, 'rb')))
+                        helper.generate_and_save_tables(games, tournament_id, bot.get_chat(call.message.chat.id).title)
 
-                        bot.send_media_group(call.message.chat.id, media_group)
+                        bot.send_document(call.message.chat.id,
+                                          document=open(f'bot/utilities/data/{tournament_id}.png', 'rb'),
+                                          caption='Расписание игр ☝')
 
                 threading.Thread(target=starter_func()).start()
     else:
