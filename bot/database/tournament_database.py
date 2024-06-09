@@ -109,12 +109,36 @@ def get_tournament_users_by_id(tournament_id):
     return tournament_doc.get('users', None)
 
 
+# Получаем участников по ID чата
+def get_tournament_users_by_chat_id(chat):
+    tournament_doc = collection.find_one({"chat": chat})
+
+    if not tournament_doc:
+        return None
+
+    return tournament_doc.get('users', None)
+
+
 # Получаем турнир по ID чата
 def find_tournament_by_chat_id(chat_id):
     tournament_doc = collection.find_one({"chat": chat_id})
-    try:
+    if tournament_doc:
         return tournament_doc['id']
-    except NotImplementedError:
+    else:
+        return None
+
+
+# Получаем игру по турниру и двум пользователям
+def find_game_by_users_and_chat(user_id_1, user_id_2, chat_id):
+    document = collection.find_one({'chat': chat_id})
+
+    if document:
+        for game in document.get('games', []):
+            if game.get('first_player') == user_id_1 and game.get('second_player') == user_id_2:
+                return game
+            elif game.get('first_player') == user_id_2 and game.get('second_player') == user_id_1:
+                return game
+    else:
         return None
 
 
