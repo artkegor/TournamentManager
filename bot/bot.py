@@ -11,13 +11,14 @@ import bot.utilities.tournament_helper as helper
 
 bot.set_my_commands(commands=[types.BotCommand('/start', 'Перезапустить бота'),
                               types.BotCommand('/help', 'Помощь'),
-                              types.BotCommand('/launch', 'Запустить турнир')])
+                              types.BotCommand('/launch', 'Запустить турнир'),
+                              types.BotCommand('/delete', 'Удалить текущий турнир')])
 
 
 @bot.message_handler(commands=['start', 'help'])
 def start_message(message):
+    threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
     if message.chat.type in ['group', 'supergroup']:
-        threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
         bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}! 👋\n\n'
                                           f'Чтобы посмотреть статистику текущего турнира введи /table 🏆\n\n'
                                           f'Если хочешь ввести результат игры то отметь меня, '
@@ -64,93 +65,119 @@ def callback_query(call):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('tourtype'))
 def callback_query(call):
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text='Выберите тип турнира:', reply_markup=mk.tournament_type())
+    admins = bot.get_chat_administrators(call.message.chat.id)
+    for admin in admins:
+        if admin.user.id == call.from_user.id:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text='Выберите тип турнира:', reply_markup=mk.tournament_type())
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('newtour_'))
 def callback_query(call):
-    if call.message.chat.type in ['group', 'supergroup']:
-        admins = bot.get_chat_administrators(call.message.chat.id)
-        for admin in admins:
-            if admin.user.id == call.from_user.id:
-                tournament_type = call.data.split('_')[1]
-                tournament_id = str(random.randint(100000, 999999))
+    admins = bot.get_chat_administrators(call.message.chat.id)
+    for admin in admins:
+        if admin.user.id == call.from_user.id:
+            subtext = {
+                'free': 'со свободным расписанием',
+                'fix': 'с фиксированным расписанием по датам'
+            }
 
-                tr_db.insert_tournament(tournament_id, call.message.chat.id, bot.get_chat(call.message.chat.id).title,
-                                        'register', tournament_type)
+            tournament_type = call.data.split('_')[1]
+            tournament_id = str(random.randint(100000, 999999))
 
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      text='Турнир создан.\n'
-                                           'До конца регистрации 30 секунд.',
-                                      reply_markup=mk.new_tournament(tournament_id))
+            tr_db.insert_tournament(tournament_id, call.message.chat.id, bot.get_chat(call.message.chat.id).title,
+                                    'register', tournament_type)
 
-                def starter_func():
-                    for i in range(300):
-                        time.sleep(3)
-                        if tr_db.get_tournament_status_by_id(tournament_id) == 'going':
-                            break
-                        else:
-                            users = tr_db.get_tournament_users_by_id(tournament_id)
-                            try:
-                                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                                      text='Турнир создан.\n'
-                                                           'До конца регистрации 30 секунд.\n\n'
-                                                           f'Присоединились: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}',
-                                                      reply_markup=mk.new_tournament(tournament_id))
-                            except:
-                                pass
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=f'Турнир создан {subtext[tournament_type]}.\n'
+                                       'До конца регистрации 30 секунд.',
+                                  reply_markup=mk.new_tournament(tournament_id))
 
-                    users = tr_db.get_tournament_users_by_id(tournament_id)
-                    tr_db.update_tournament_status(tournament_id, 'going')
-                    if tournament_type == 'free':
-                        bot.delete_message(call.message.chat.id, call.message.message_id)
-                        bot.send_message(call.message.chat.id, 'Регистрация окончена!\n\n'
-                                                               f'🫂 На турнир зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}')
-
+            def starter_func(tournament_type):
+                subtext = {
+                    'free': 'со свободным расписанием',
+                    'fix': 'с фиксированным расписанием по датам'
+                }
+                for i in range(300):
+                    time.sleep(5)
+                    if tr_db.get_tournament_status_by_id(tournament_id) == 'going':
+                        break
                     else:
-                        bot.delete_message(call.message.chat.id, call.message.message_id)
-                        bot.send_message(call.message.chat.id, 'Регистрация окончена!\n'
-                                                               'Формирую расписание игр...\n\n'
-                                                               f'🫂 На турнир зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}')
+                        users = tr_db.get_tournament_users_by_id(tournament_id)
+                        try:
+                            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                                  text=f'Турнир создан {subtext[tournament_type]}.\n'
+                                                       'До конца регистрации 30 секунд.\n\n'
+                                                       f'Присоединились: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}',
+                                                  reply_markup=mk.new_tournament(tournament_id))
+                        except:
+                            pass
 
-                        games = helper.round_robin(tr_db.get_tournament_users_by_id(tournament_id))
-                        tr_db.insert_schedule_to_tournament(games, tournament_id)
+                users = tr_db.get_tournament_users_by_id(tournament_id)
+                tr_db.update_tournament_status(tournament_id, 'going')
 
-                        for item in games:
-                            if isinstance(item, list):
-                                new_item = []
-                                for subitem in item:
-                                    if isinstance(subitem, tuple):
-                                        new_subitem = (
-                                            bot.get_chat_member(call.message.chat.id, subitem[0]).user.first_name,
-                                            bot.get_chat_member(call.message.chat.id, subitem[1]).user.first_name)
-                                        new_item.append(new_subitem)
-                                item[:] = new_item
+                if len(users) % 2 == 1:
+                    tournament_type = 'free'
+                    tr_db.update_tournament_schedule_type(tournament_id, tournament_type)
 
-                        helper.generate_and_save_tables(games, tournament_id, bot.get_chat(call.message.chat.id).title)
+                if tournament_type == 'free':
+                    bot.delete_message(call.message.chat.id, call.message.message_id)
+                    bot.send_message(call.message.chat.id, 'Регистрация окончена!\n\n'
+                                                           f'🫂 На турнир зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}')
 
-                        bot.send_document(call.message.chat.id,
-                                          document=open(f'bot/utilities/data/{tournament_id}.png', 'rb'),
-                                          caption='Расписание игр ☝')
+                else:
+                    bot.delete_message(call.message.chat.id, call.message.message_id)
+                    bot.send_message(call.message.chat.id, 'Регистрация окончена!\n'
+                                                           'Формирую расписание игр...\n\n'
+                                                           f'🫂 На турнир зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}')
 
-                threading.Thread(target=starter_func()).start()
-    else:
-        pass
+                    games = helper.round_robin(tr_db.get_tournament_users_by_id(tournament_id))
+                    tr_db.insert_schedule_to_tournament(games, tournament_id)
+
+                    for item in games:
+                        if isinstance(item, list):
+                            new_item = []
+                            for subitem in item:
+                                if isinstance(subitem, tuple):
+                                    new_subitem = (
+                                        bot.get_chat_member(call.message.chat.id, subitem[0]).user.first_name,
+                                        bot.get_chat_member(call.message.chat.id, subitem[1]).user.first_name)
+                                    new_item.append(new_subitem)
+                            item[:] = new_item
+
+                    helper.generate_and_save_tables(games, tournament_id, bot.get_chat(call.message.chat.id).title)
+
+                    bot.send_document(call.message.chat.id,
+                                      document=open(f'bot/utilities/data/{tournament_id}.png', 'rb'),
+                                      caption='Расписание игр ☝')
+
+            threading.Thread(target=starter_func(tournament_type)).start()
 
 
 @bot.message_handler(commands=['launch'])
 def launch_tournament(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
     if message.chat.type in ['group', 'supergroup']:
-        tournament_id = tr_db.find_tournament_by_chat_id(message.chat.id)
-        if tournament_id:
-            tr_db.update_tournament_status(tournament_id, 'going')
-        else:
-            bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
+        admins = bot.get_chat_administrators(message.chat.id)
+        for admin in admins:
+            if admin.user.id == message.from_user.id:
+                tournament_id = tr_db.find_tournament_by_chat_id(message.chat.id)
+                if tournament_id:
+                    tr_db.update_tournament_status(tournament_id, 'going')
+                else:
+                    bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
+    else:
+        bot.send_message(message.chat.id, 'Команда применима только в группе.')
 
 
 @bot.message_handler(commands=['delete'])
 def launch_tournament(message):
-    tr_db.delete_tournament_by_chat_id(message.chat.id)
-    bot.send_message(message.chat.id, 'удалено')
+    threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
+    if message.chat.type in ['group', 'supergroup']:
+        admins = bot.get_chat_administrators(message.chat.id)
+        for admin in admins:
+            if admin.user.id == message.from_user.id:
+                tr_db.delete_tournament_by_chat_id(message.chat.id)
+                bot.send_message(message.chat.id, 'Текущий турнир удален')
+    else:
+        bot.send_message(message.chat.id, 'Команда применима только в группе.')

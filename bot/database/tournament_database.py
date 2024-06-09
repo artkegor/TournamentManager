@@ -84,6 +84,11 @@ def update_tournament_status(tournament_id, status):
     collection.update_one({'id': tournament_id}, {'$set': {'status': status}})
 
 
+# Обновляем тип расписания турнира
+def update_tournament_schedule_type(tournament_id, status):
+    collection.update_one({'id': tournament_id}, {'$set': {'type': status}})
+
+
 # Получаем статус турнира
 def get_tournament_status_by_id(tournament_id):
     tournament_doc = collection.find_one({"id": tournament_id})
