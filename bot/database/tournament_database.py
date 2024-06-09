@@ -13,7 +13,7 @@ def print_all_data():
 
 
 # Вставляем в БД новый турнир
-def insert_tournament(tournament_id, chat_id, name, status):
+def insert_tournament(tournament_id, chat_id, name, status, type):
     existing_tournament = collection.find_one({"chat": chat_id})
 
     if existing_tournament:
@@ -24,6 +24,7 @@ def insert_tournament(tournament_id, chat_id, name, status):
         "chat": chat_id,
         "name": name,
         "status": status,
+        "type": type,
         "users": [],
         "games": []
     }

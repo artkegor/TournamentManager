@@ -64,15 +64,23 @@ def callback_query(call):
                               text='Кажется, вы еще не участвовали в турнирах!')
 
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('newtour'))
+@bot.callback_query_handler(func=lambda call: call.data.startswith('tourtype'))
+def callback_query(call):
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text='Выберите тип турнира:', reply_markup=mk.tournament_type())
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('newtour_'))
 def callback_query(call):
     if call.message.chat.type in ['group', 'supergroup']:
         admins = bot.get_chat_administrators(call.message.chat.id)
         for admin in admins:
             if admin.user.id == call.from_user.id:
+                tournament_type = call.data.split('_')[1]
                 tournament_id = str(random.randint(100000, 999999))
+
                 tr_db.insert_tournament(tournament_id, call.message.chat.id, bot.get_chat(call.message.chat.id).title,
-                                        'register')
+                                        'register', tournament_type)
 
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                       text='Турнир создан.\n'
@@ -95,40 +103,45 @@ def callback_query(call):
                             except:
                                 pass
 
-                    tr_db.update_tournament_status(tournament_id, 'going')
-                    games = helper.round_robin(tr_db.get_tournament_users_by_id(tournament_id))
                     users = tr_db.get_tournament_users_by_id(tournament_id)
+                    tr_db.update_tournament_status(tournament_id, 'going')
+                    if tournament_type == 'free':
+                        bot.delete_message(call.message.chat.id, call.message.message_id)
+                        bot.send_message(call.message.chat.id, 'Регистрация окончена!\n\n'
+                                                               f'🫂 На турнир зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}')
 
-                    bot.delete_message(call.message.chat.id, call.message.message_id)
-                    bot.send_message(call.message.chat.id, 'Регистрация окончена!\n'
-                                                           'Формирую расписание игр...\n\n'
-                                                           f'🫂 На турнир зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}')
+                    else:
+                        bot.delete_message(call.message.chat.id, call.message.message_id)
+                        bot.send_message(call.message.chat.id, 'Регистрация окончена!\n'
+                                                               'Формирую расписание игр...\n\n'
+                                                               f'🫂 На турнир зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}')
 
-                    tr_db.insert_schedule_to_tournament(games, tournament_id)
+                        games = helper.round_robin(tr_db.get_tournament_users_by_id(tournament_id))
+                        tr_db.insert_schedule_to_tournament(games, tournament_id)
 
-                    for item in games:
-                        if isinstance(item, list):
-                            new_item = []
-                            for subitem in item:
-                                if isinstance(subitem, tuple):
-                                    new_subitem = (
-                                        bot.get_chat_member(call.message.chat.id, subitem[0]).user.first_name,
-                                        bot.get_chat_member(call.message.chat.id, subitem[1]).user.first_name)
-                                    new_item.append(new_subitem)
-                            item[:] = new_item
+                        for item in games:
+                            if isinstance(item, list):
+                                new_item = []
+                                for subitem in item:
+                                    if isinstance(subitem, tuple):
+                                        new_subitem = (
+                                            bot.get_chat_member(call.message.chat.id, subitem[0]).user.first_name,
+                                            bot.get_chat_member(call.message.chat.id, subitem[1]).user.first_name)
+                                        new_item.append(new_subitem)
+                                item[:] = new_item
 
-                    helper.generate_and_save_tables(games, tournament_id)
-                    photo_files = glob.glob(f'bot/utilities/data/{tournament_id}*.png')
-                    media_group = []
-                    for photo_file in photo_files:
-                        filename = os.path.basename(photo_file)
-                        if '_0' in filename:
-                            media_group.append(
-                                types.InputMediaPhoto(open(photo_file, 'rb'), caption='Расписание игр! ☝'))
-                        else:
-                            media_group.append(types.InputMediaPhoto(open(photo_file, 'rb')))
+                        helper.generate_and_save_tables(games, tournament_id)
+                        photo_files = glob.glob(f'bot/utilities/data/{tournament_id}*.png')
+                        media_group = []
+                        for photo_file in photo_files:
+                            filename = os.path.basename(photo_file)
+                            if '_0' in filename:
+                                media_group.append(
+                                    types.InputMediaPhoto(open(photo_file, 'rb'), caption='Расписание игр! ☝'))
+                            else:
+                                media_group.append(types.InputMediaPhoto(open(photo_file, 'rb')))
 
-                    bot.send_media_group(call.message.chat.id, media_group)
+                        bot.send_media_group(call.message.chat.id, media_group)
 
                 threading.Thread(target=starter_func()).start()
     else:

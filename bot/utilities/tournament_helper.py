@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import io
 from datetime import datetime, timedelta
-from glob import glob
 
 # Константы
 plt.rcParams['figure.dpi'] = 400
