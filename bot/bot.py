@@ -12,7 +12,8 @@ import bot.database.user_database as user_db
 import bot.database.tournament_database as tr_db
 import bot.utilities.tournament_helper as helper
 
-bot.set_my_commands(commands=[types.BotCommand('/start', 'Перезапустить бота'),
+bot.set_my_commands(commands=[types.BotCommand('/set', 'Внести игру'),
+                              types.BotCommand('/start', 'Перезапустить бота'),
                               types.BotCommand('/launch', 'Запустить турнир'),
                               types.BotCommand('/delete', 'Удалить текущий турнир')])
 
@@ -24,7 +25,7 @@ def start_message(message):
         bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}! 👋\n\n'
                                           f'Чтобы посмотреть статистику текущего турнира введи /table 🏆\n\n'
                                           f'Если хочешь ввести результат игры то отметь меня, '
-                                          f'или используй команду /set. 👀', reply_markup=mk.group_start_markup())
+                                          f'или используй команду\n /set. 👀', reply_markup=mk.group_start_markup())
     else:
         if message.from_user.username:
             if ' ' in message.text:
