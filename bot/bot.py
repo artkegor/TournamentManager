@@ -24,7 +24,7 @@ def start_message(message):
         bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}! 👋\n\n'
                                           f'Чтобы посмотреть статистику текущего турнира введи /table 🏆\n\n'
                                           f'Если хочешь ввести результат игры то отметь меня, '
-                                          f'или напиши в личные сообщения. 👀', reply_markup=mk.group_start_markup())
+                                          f'или используй команду /set. 👀', reply_markup=mk.group_start_markup())
     else:
         if message.from_user.username:
             if ' ' in message.text:
@@ -200,6 +200,50 @@ def launch_tournament(message):
         bot.send_message(message.chat.id, 'Команда применима только в группе.')
 
 
+# Команда для вноса игр + исходит из inline.handler
+@bot.message_handler(commands=['set'])
+def set_message(message):
+    threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
+    if ' ' in message.text:
+        if len(message.text.split()) != 3:
+            bot.send_message(message.chat.id, 'Чтобы внести игру, введите ник оппонента и счет.')
+        else:
+            cmd, username, score = message.text.split()
+            first_player = message.from_user.id
+            second_player = user_db.get_user_document_by_username(username[1:])['userId']
+            chat_id_1 = user_db.get_user_document_by_username(message.from_user.username)['current_chat']
+            chat_id_2 = user_db.get_user_document_by_username(username[1:])['current_chat']
+
+            if chat_id_1 != chat_id_2:
+                bot.send_message(message.chat.id,
+                                 'Вы участвуете в разных турнирах, или игрок не присоединился к соревнованиям.')
+            else:
+                game = tr_db.find_game_by_users_and_chat(first_player, second_player, chat_id_1)
+                if not game:
+                    bot.send_message(message.chat.id, 'Никакой турнир сейчас не запщуен.')
+                else:
+                    game_date_str = game['date']
+                    game_date = datetime.strptime(game_date_str, '%d/%m/%y')
+                    today_date = datetime.now()
+
+                    if game_date.date() == today_date.date():
+                        games_left = game['games_left']
+                        if games_left > 0:
+                            game_id = game['game_id']
+                            if tr_db.insert_game_result(chat_id_1, game_id, score, games_left, first_player,
+                                                        second_player):
+                                bot.send_message(message.chat.id, 'Игра внесена.')
+                            else:
+                                bot.send_message(message.chat.id, 'Ошибка!)')
+
+                        else:
+                            bot.send_message(message.chat.id, 'Вы уже внесли две игры с этим пользователем.')
+                    else:
+                        bot.send_message(message.chat.id, 'Сегодня вы играете с другим игроком.')
+    else:
+        bot.send_message(message.chat.id, 'Чтобы внести игру, введите ник оппонента и счет.')
+
+
 # Inline-обработчик для вноса игр
 @bot.inline_handler(func=lambda query: len(query.query) > 0)
 def query_text(query):
@@ -246,7 +290,7 @@ def query_text(query):
                         number = str(uuid.uuid4())
                         title = 'Внести игру'
                         description = f'@{query.from_user.username} {score} {username}'
-                        command = f'/set {description}'
+                        command = f'/set {username} {score}'
                         result = types.InlineQueryResultArticle(
                             id=number,
                             title=title,
@@ -277,10 +321,3 @@ def query_text(query):
                     )
 
         bot.answer_inline_query(query.id, [result])
-
-
-# handler !!!
-@bot.message_handler(commands=['set'])
-def set_message(message):
-    # ОБРАБОТЧИК УСТАРЕВШИХ HANDLER'ОВ
-    print(message.text)

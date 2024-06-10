@@ -14,7 +14,7 @@ def print_all_data(collection):
 # Вставляем в БД нового пользователя
 def insert_user(userid, username):
     filter = {'userId': userid}
-    update = {'$set': {'username': username}}
+    update = {'$set': {'username': username, 'current_chat': False}}
 
     collection.update_one(filter, update, upsert=True)
 

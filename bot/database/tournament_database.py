@@ -70,13 +70,42 @@ def insert_schedule_to_tournament(schedule_list, tournament_id):
                     "date": game_set_date.strftime("%d/%m/%y"),
                     "first_player": game[0],
                     "second_player": game[1],
-                    "games_left": 2
+                    "games_left": 2,
+                    "first_game_results": {},
+                    "second_game_results": {},
                 }
 
                 tournament["games"].append(game_doc)
                 game_id_counter += 1
 
         collection.update_one({"id": tournament_id}, {"$set": tournament})
+
+
+# Вставлем результат игры
+def insert_game_result(chat_id, game_id, score, games_left, user_id_1, user_id_2):
+    game = find_game_by_id(chat_id, game_id)
+    if game:
+        if games_left == 2:
+            game['first_game_results'] = {
+                'first_player': user_id_1,
+                'second_player': user_id_2,
+                'score': score
+            }
+            games_left -= 1
+        elif games_left == 1:
+            game['second_game_results'] = {
+                'first_player': user_id_1,
+                'second_player': user_id_2,
+                'score': score
+            }
+            games_left -= 1
+        collection.update_one({'chat': chat_id, 'games.game_id': game_id},
+                              {'$set': {'games.$': game}})
+        collection.update_one({'chat': chat_id, 'games.game_id': game_id},
+                              {'$set': {'games.$.games_left': games_left}})
+        return True
+    else:
+        return False
 
 
 # Обновляем статус турнира
@@ -87,6 +116,16 @@ def update_tournament_status(tournament_id, status):
 # Обновляем тип расписания турнира
 def update_tournament_schedule_type(tournament_id, status):
     collection.update_one({'id': tournament_id}, {'$set': {'type': status}})
+
+
+# Получаем игру по ID-игры и турнира
+def find_game_by_id(chat_id, game_id):
+    document = collection.find_one({'chat': chat_id})
+    if document:
+        for game in document.get('games', []):
+            if game.get('game_id') == game_id:
+                return game
+    return None
 
 
 # Получаем статус турнира
