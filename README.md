@@ -13,7 +13,7 @@
 - Для работы на сервере нужно запустить базу данных Mongo в Docker-контейнере с помощью следующих команд:
   ```sh
   $ docker pull mongo:latest
-  $ docker run -d -p 27017:27017 --name=mongo-example mongo:latest
+  $ docker run -d -p 27017:27017 --name mongodb mongo:latest
   ```
 - Чтобы запустить бота можно использовать [Nohup](https://ru.wikipedia.org/wiki/Nohup):
   ```sh
