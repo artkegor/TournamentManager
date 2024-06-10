@@ -201,7 +201,6 @@ def launch_tournament(message):
         bot.send_message(message.chat.id, 'Команда применима только в группе.')
 
 
-# Команда для вноса игр + исходит из inline.handler
 @bot.message_handler(commands=['set'])
 def set_message(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
@@ -245,7 +244,6 @@ def set_message(message):
         bot.send_message(message.chat.id, 'Чтобы внести игру, введите ник оппонента и счет.')
 
 
-# Inline-обработчик для вноса игр
 @bot.inline_handler(func=lambda query: len(query.query) > 0)
 def query_text(query):
     pattern = r"@\w+\s\d+:\d+"
