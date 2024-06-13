@@ -50,7 +50,7 @@ def add_user_to_tournament(tournament_id, user_id):
     return 'good'
 
 
-# Вставляем расписание в игру
+# Вставляем игры в фикс. турнир
 def insert_schedule_to_tournament(schedule_list, tournament_id):
     tournament = collection.find_one({"id": tournament_id})
 
@@ -79,6 +79,28 @@ def insert_schedule_to_tournament(schedule_list, tournament_id):
                 game_id_counter += 1
 
         collection.update_one({"id": tournament_id}, {"$set": tournament})
+
+
+# Вставляем игру в свободный турнир
+def add_new_game(chat_id, first_player, second_player):
+    doc = collection.find_one({'chat': {chat_id}})
+
+    if doc:
+        games_length = len(doc.get('games', []))
+        new_game = {
+            "game_id": games_length + 1,
+            "first_player": first_player,
+            "second_player": second_player,
+            "games_left": 2,
+            "first_game_results": {},
+            "second_game_results": {}
+        }
+
+        doc['games'].append(new_game)
+
+        collection.update_one({'_id': doc['_id']}, {'$set': {'games': doc['games']}})
+    else:
+        print("Document not found")
 
 
 # Вставлем результат игры

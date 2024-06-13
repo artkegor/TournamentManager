@@ -222,30 +222,33 @@ def set_message(message):
                 if not game:
                     bot.send_message(message.chat.id, 'Никакой турнир сейчас не запщуен.')
                 else:
-                    game_date_str = game['date']
-                    game_date = datetime.strptime(game_date_str, '%d/%m/%y')
-                    today_date = datetime.now()
+                    if game['type'] == 'fix':
+                        game_date_str = game['date']
+                        game_date = datetime.strptime(game_date_str, '%d/%m/%y')
+                        today_date = datetime.now()
 
-                    if game_date.date() == today_date.date():
-                        games_left = game['games_left']
-                        if games_left > 0:
-                            game_id = game['game_id']
-                            if tr_db.insert_game_result(chat_id_1, game_id, score, games_left, first_player,
-                                                        second_player):
-                                bot.send_message(message.chat.id, 'Игра внесена.')
+                        if game_date.date() == today_date.date():
+                            games_left = game['games_left']
+                            if games_left > 0:
+                                game_id = game['game_id']
+                                if tr_db.insert_game_result(chat_id_1, game_id, score, games_left, first_player,
+                                                            second_player):
+                                    bot.send_message(message.chat.id, 'Игра внесена.')
+                                else:
+                                    bot.send_message(message.chat.id, 'Ошибка!')
+
                             else:
-                                bot.send_message(message.chat.id, 'Ошибка!)')
-
+                                bot.send_message(message.chat.id, 'Вы уже внесли две игры с этим пользователем.')
                         else:
-                            bot.send_message(message.chat.id, 'Вы уже внесли две игры с этим пользователем.')
-                    else:
-                        bot.send_message(message.chat.id, 'Сегодня вы играете с другим игроком.')
+                            bot.send_message(message.chat.id, 'Сегодня вы играете с другим игроком.')
+
     else:
         bot.send_message(message.chat.id, 'Чтобы внести игру, введите ник оппонента и счет.')
 
 
 @bot.inline_handler(func=lambda query: len(query.query) > 0)
 def query_text(query):
+    result = None
     pattern = r"@\w+\s\d+:\d+"
     match = re.search(pattern, query.query)
     if match:
@@ -270,53 +273,61 @@ def query_text(query):
         else:
             game = tr_db.find_game_by_users_and_chat(author_id, mentioned_id, chat_id_a)
             if not game:
-                number = str(uuid.uuid4())
-                title = 'Ошибка'
-                description = 'Никакой турнир сейчас не запущен.'
-                result = types.InlineQueryResultArticle(
-                    id=number,
-                    title=title,
-                    description=description,
-                    input_message_content=types.InputTextMessageContent(description)
-                )
-            else:
-                game_date_str = game['date']
-                game_date = datetime.strptime(game_date_str, '%d/%m/%y')
-                today_date = datetime.now()
+                if game['type'] == 'free':
+                    number = str(uuid.uuid4())
+                    title = 'Внести игру'
+                    description = f'@{query.from_user.username} {score} {username}'
+                    command = f'/set {username} {score}'
 
-                if game_date.date() == today_date.date():
-                    if game['games_left'] > 0:
-                        number = str(uuid.uuid4())
-                        title = 'Внести игру'
-                        description = f'@{query.from_user.username} {score} {username}'
-                        command = f'/set {username} {score}'
-                        result = types.InlineQueryResultArticle(
-                            id=number,
-                            title=title,
-                            description=description,
-                            input_message_content=types.InputTextMessageContent(command)
-                        )
-                    else:
-                        number = str(uuid.uuid4())
-                        title = 'Ошибка!'
-                        description = 'Вы уже внесли две игры с этим пользователем.'
-
-                        result = types.InlineQueryResultArticle(
-                            id=number,
-                            title=title,
-                            description=description,
-                            input_message_content=types.InputTextMessageContent(description)
-                        )
                 else:
                     number = str(uuid.uuid4())
-                    title = 'Ошибка!'
-                    description = 'Сегодня вы играете с другим участником.'
-
+                    title = 'Ошибка'
+                    description = 'Никакой турнир сейчас не запущен.'
                     result = types.InlineQueryResultArticle(
                         id=number,
                         title=title,
                         description=description,
-                        input_message_content=types.InputTextMessageContent(description),
+                        input_message_content=types.InputTextMessageContent(description)
                     )
+            else:
+                if game['type'] == 'fix':
+                    game_date_str = game['date']
+                    game_date = datetime.strptime(game_date_str, '%d/%m/%y')
+                    today_date = datetime.now()
+
+                    if game_date.date() == today_date.date():
+                        if game['games_left'] > 0:
+                            number = str(uuid.uuid4())
+                            title = 'Внести игру'
+                            description = f'@{query.from_user.username} {score} {username}'
+                            command = f'/set {username} {score}'
+                            result = types.InlineQueryResultArticle(
+                                id=number,
+                                title=title,
+                                description=description,
+                                input_message_content=types.InputTextMessageContent(command)
+                            )
+                        else:
+                            number = str(uuid.uuid4())
+                            title = 'Ошибка!'
+                            description = 'Вы уже внесли две игры с этим пользователем.'
+
+                            result = types.InlineQueryResultArticle(
+                                id=number,
+                                title=title,
+                                description=description,
+                                input_message_content=types.InputTextMessageContent(description)
+                            )
+                    else:
+                        number = str(uuid.uuid4())
+                        title = 'Ошибка!'
+                        description = 'Сегодня вы играете с другим участником.'
+
+                        result = types.InlineQueryResultArticle(
+                            id=number,
+                            title=title,
+                            description=description,
+                            input_message_content=types.InputTextMessageContent(description),
+                        )
 
         bot.answer_inline_query(query.id, [result])
