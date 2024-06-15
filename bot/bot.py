@@ -269,7 +269,8 @@ def set_message(message):
                             bot.send_message(message.chat.id, 'Сегодня вы играете с другим игроком.')
 
     else:
-        bot.send_message(message.chat.id, 'Чтобы внести игру, введите ник оппонента и счет.')
+        bot.send_message(message.chat.id, 'ℹ️ Чтобы внести игру, введите сообщение в формате\n'
+                                          '/set [ник соперника] [счет (свой:соперника)]')
 
 
 @bot.inline_handler(func=lambda query: len(query.query) > 0)
