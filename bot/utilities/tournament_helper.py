@@ -1,9 +1,11 @@
+import matplotlib as mlt
 import matplotlib.pyplot as plt
 from PIL import Image
 import io
 from datetime import datetime, timedelta
 
 # Константы
+mlt.use('agg')
 plt.rcParams['figure.dpi'] = 400
 plt.rcParams['font.family'] = 'sans-serif'
 

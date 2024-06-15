@@ -220,9 +220,34 @@ def set_message(message):
             else:
                 game = tr_db.find_game_by_users_and_chat(first_player, second_player, chat_id_1)
                 if not game:
-                    bot.send_message(message.chat.id, 'Никакой турнир сейчас не запщуен.')
+                    if not tr_db.get_tournament_users_by_chat_id(chat_id_1):
+                        bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
+                    else:
+                        tourne = tr_db.get_tournament_type_by_chat_id(chat_id_1)
+                        if tourne == 'free':
+                            tr_db.add_new_game(chat_id_1, first_player, second_player)
+                            game = tr_db.find_game_by_users_and_chat(first_player, second_player, chat_id_1)
+                            game_id = game['game_id']
+                            games_left = game['games_left']
+                            if tr_db.insert_game_result(chat_id_1, game_id, score, games_left, first_player,
+                                                        second_player):
+                                bot.send_message(message.chat.id, 'Игра внесена.\n\n'
+                                                                  f'@{message.from_user.username} {score} {username}')
+                        else:
+                            bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
                 else:
-                    if game['type'] == 'fix':
+                    tourne = tr_db.get_tournament_type_by_chat_id(chat_id_1)
+                    if tourne == 'free':
+                        if game['games_left'] > 0:
+                            game_id = game['game_id']
+                            games_left = game['games_left']
+                            if tr_db.insert_game_result(chat_id_1, game_id, score, games_left, first_player,
+                                                        second_player):
+                                bot.send_message(message.chat.id, 'Игра внесена.\n\n'
+                                                                  f'@{message.from_user.username} {score} {username}')
+                        else:
+                            bot.send_message(message.chat.id, 'Вы уже внесли две игры с этим пользователем.')
+                    elif game['type'] == 'fix':
                         game_date_str = game['date']
                         game_date = datetime.strptime(game_date_str, '%d/%m/%y')
                         today_date = datetime.now()
@@ -233,7 +258,8 @@ def set_message(message):
                                 game_id = game['game_id']
                                 if tr_db.insert_game_result(chat_id_1, game_id, score, games_left, first_player,
                                                             second_player):
-                                    bot.send_message(message.chat.id, 'Игра внесена.')
+                                    bot.send_message(message.chat.id, 'Игра внесена.\n\n'
+                                                                      f'@{message.from_user.username} {score} {username}')
                                 else:
                                     bot.send_message(message.chat.id, 'Ошибка!')
 
@@ -273,13 +299,7 @@ def query_text(query):
         else:
             game = tr_db.find_game_by_users_and_chat(author_id, mentioned_id, chat_id_a)
             if not game:
-                if game['type'] == 'free':
-                    number = str(uuid.uuid4())
-                    title = 'Внести игру'
-                    description = f'@{query.from_user.username} {score} {username}'
-                    command = f'/set {username} {score}'
-
-                else:
+                if not tr_db.get_tournament_users_by_chat_id(chat_id_a):
                     number = str(uuid.uuid4())
                     title = 'Ошибка'
                     description = 'Никакой турнир сейчас не запущен.'
@@ -289,8 +309,55 @@ def query_text(query):
                         description=description,
                         input_message_content=types.InputTextMessageContent(description)
                     )
+                else:
+                    tourne = tr_db.get_tournament_type_by_chat_id(chat_id_a)
+                    if tourne == 'free':
+                        number = str(uuid.uuid4())
+                        title = 'Внести игру'
+                        description = f'@{query.from_user.username} {score} {username}'
+                        command = f'/set {username} {score}'
+                        result = types.InlineQueryResultArticle(
+                            id=number,
+                            title=title,
+                            description=description,
+                            input_message_content=types.InputTextMessageContent(command)
+                        )
+                    else:
+                        number = str(uuid.uuid4())
+                        title = 'Ошибка'
+                        description = 'Никакой турнир сейчас не запущен.'
+                        result = types.InlineQueryResultArticle(
+                            id=number,
+                            title=title,
+                            description=description,
+                            input_message_content=types.InputTextMessageContent(description)
+                        )
             else:
-                if game['type'] == 'fix':
+                tourne = tr_db.get_tournament_type_by_chat_id(chat_id_a)
+                if tourne == 'free':
+                    if game['games_left'] > 0:
+                        number = str(uuid.uuid4())
+                        title = 'Внести игру'
+                        description = f'@{query.from_user.username} {score} {username}'
+                        command = f'/set {username} {score}'
+                        result = types.InlineQueryResultArticle(
+                            id=number,
+                            title=title,
+                            description=description,
+                            input_message_content=types.InputTextMessageContent(command)
+                        )
+                    else:
+                        number = str(uuid.uuid4())
+                        title = 'Ошибка!'
+                        description = 'Вы уже внесли две игры с этим пользователем.'
+
+                        result = types.InlineQueryResultArticle(
+                            id=number,
+                            title=title,
+                            description=description,
+                            input_message_content=types.InputTextMessageContent(description)
+                        )
+                elif game['type'] == 'fix':
                     game_date_str = game['date']
                     game_date = datetime.strptime(game_date_str, '%d/%m/%y')
                     today_date = datetime.now()

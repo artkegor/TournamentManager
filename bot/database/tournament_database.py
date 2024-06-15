@@ -83,7 +83,7 @@ def insert_schedule_to_tournament(schedule_list, tournament_id):
 
 # Вставляем игру в свободный турнир
 def add_new_game(chat_id, first_player, second_player):
-    doc = collection.find_one({'chat': {chat_id}})
+    doc = collection.find_one({'chat': chat_id})
 
     if doc:
         games_length = len(doc.get('games', []))
@@ -160,6 +160,16 @@ def get_tournament_status_by_id(tournament_id):
     return tournament_doc.get('status', None)
 
 
+# Получаем статус турнира по ID-чата
+def get_tournament_status_by_chat_id(chat):
+    tournament_doc = collection.find_one({"chat": chat})
+
+    if not tournament_doc:
+        return None
+
+    return tournament_doc.get('status', None)
+
+
 # Получаем участников по ID
 def get_tournament_users_by_id(tournament_id):
     tournament_doc = collection.find_one({"id": tournament_id})
@@ -178,6 +188,16 @@ def get_tournament_users_by_chat_id(chat):
         return None
 
     return tournament_doc.get('users', None)
+
+
+# Получаем участников по ID чата
+def get_tournament_type_by_chat_id(chat):
+    tournament_doc = collection.find_one({"chat": chat})
+
+    if not tournament_doc:
+        return None
+
+    return tournament_doc.get('type', None)
 
 
 # Получаем турнир по ID чата
