@@ -79,6 +79,7 @@ def calculate_scores(games, users):
     scores = defaultdict(lambda: {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
                                   "games_left": {"played": 0, "all": all_games}})
     if not games:
+        sorted_scores = None
         for i in users:
             scores[i] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
                          "games_left": {"played": 0, "all": 0}}
