@@ -1,7 +1,8 @@
+import io
+from PIL import Image
 import matplotlib as mlt
 import matplotlib.pyplot as plt
-from PIL import Image
-import io
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 # Константы
@@ -70,3 +71,64 @@ def generate_and_save_tables(games, tournament_id, group_name):
     buf.seek(0)
     img = Image.open(buf)
     img.save(f'bot/utilities/data/{tournament_id}.png')
+
+
+# Подсчитываем очки
+def calculate_scores(games):
+    scores = defaultdict(lambda: {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0}})
+
+    for game in games:
+        if 'first_game_results' in game:
+            first_player = game['first_game_results']['first_player']
+            second_player = game['first_game_results']['second_player']
+
+            first_score = int(game['first_game_results']['score'].split(':')[0])
+            second_score = int(game['first_game_results']['score'].split(':')[1])
+            if first_score > second_score:
+                scores[first_player]['score'] += 3
+                scores[first_player]['games_results']['wins'] += 1
+                scores[second_player]['games_results']['losses'] += 1
+            elif first_score < second_score:
+                scores[second_player]['score'] += 3
+                scores[second_player]['games_results']['wins'] += 1
+                scores[first_player]['games_results']['losses'] += 1
+            else:
+                scores[first_player]['score'] += 1
+                scores[second_player]['score'] += 1
+                scores[first_player]['games_results']['draws'] += 1
+                scores[second_player]['games_results']['draws'] += 1
+
+        if 'second_game_results' in game:
+            first_player = game['second_game_results']['first_player']
+            second_player = game['second_game_results']['second_player']
+
+            first_score = int(game['second_game_results']['score'].split(':')[0])
+            second_score = int(game['second_game_results']['score'].split(':')[1])
+
+            if first_score > second_score:
+                scores[first_player]['score'] += 3
+                scores[first_player]['games_results']['wins'] += 1
+                scores[second_player]['games_results']['losses'] += 1
+            elif first_score < second_score:
+                scores[second_player]['score'] += 3
+                scores[second_player]['games_results']['wins'] += 1
+                scores[first_player]['games_results']['losses'] += 1
+            else:
+                scores[first_player]['score'] += 1
+                scores[second_player]['score'] += 1
+                scores[first_player]['games_results']['draws'] += 1
+                scores[second_player]['games_results']['draws'] += 1
+
+    sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]['score'], reverse=True))
+
+    place = 1
+    for player_id, player_data in sorted_scores.items():
+        player_data['place'] = place
+        place += 1
+
+    return sorted_scores
+
+
+# Создаем табличку текущих результатов
+def generate_current_table(games):
+    print(games)

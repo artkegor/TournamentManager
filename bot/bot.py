@@ -111,7 +111,7 @@ def callback_query(call):
                                                        'До конца регистрации 30 секунд.\n\n'
                                                        f'Присоединились: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}',
                                                   reply_markup=mk.new_tournament(tournament_id))
-                        except:
+                        except NotImplementedError:
                             if not tr_db.get_tournament_users_by_id(tournament_id):
                                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                                       text='Турнир был удален.')
@@ -259,7 +259,8 @@ def set_message(message):
                                 if tr_db.insert_game_result(chat_id_1, game_id, score, games_left, first_player,
                                                             second_player):
                                     bot.send_message(message.chat.id, 'Игра внесена.\n\n'
-                                                                      f'@{message.from_user.username} {score} {username}')
+                                                                      f'@{message.from_user.username} '
+                                                                      f'{score} {username}')
                                 else:
                                     bot.send_message(message.chat.id, 'Ошибка!')
 
@@ -270,7 +271,19 @@ def set_message(message):
 
     else:
         bot.send_message(message.chat.id, 'ℹ️ Чтобы внести игру, введите сообщение в формате\n\n'
-                                          '<code>/set [@ник соперника] [счет (свой:соперника)]</code>', parse_mode='html')
+                                          '<code>/set [@ник соперника] [счет (свой:соперника)]</code>',
+                         parse_mode='html')
+
+
+@bot.message_handler(commands=['table'])
+def launch_tournament(message):
+    threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
+    if tr_db.get_tournament_status_by_chat_id(message.chat.id) == 'going':
+        games = tr_db.get_tournament_games_by_chat_id(message.chat.id)
+        scores_dict = helper.calculate_scores(games)
+        helper.generate_current_table(scores_dict)
+    else:
+        bot.send_message(message.chat.id, 'Турнир не запущен.')
 
 
 @bot.inline_handler(func=lambda query: len(query.query) > 0)

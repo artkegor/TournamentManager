@@ -50,7 +50,7 @@ def add_user_to_tournament(tournament_id, user_id):
     return 'good'
 
 
-# Вставляем игры в фикс. турнир
+# Вставляем игры в фиксированный турнир
 def insert_schedule_to_tournament(schedule_list, tournament_id):
     tournament = collection.find_one({"id": tournament_id})
 
@@ -99,8 +99,6 @@ def add_new_game(chat_id, first_player, second_player):
         doc['games'].append(new_game)
 
         collection.update_one({'_id': doc['_id']}, {'$set': {'games': doc['games']}})
-    else:
-        print("Document not found")
 
 
 # Вставлем результат игры
@@ -160,7 +158,7 @@ def get_tournament_status_by_id(tournament_id):
     return tournament_doc.get('status', None)
 
 
-# Получаем статус турнира по ID-чата
+# Получаем статус турнира по ID чата
 def get_tournament_status_by_chat_id(chat):
     tournament_doc = collection.find_one({"chat": chat})
 
@@ -170,7 +168,7 @@ def get_tournament_status_by_chat_id(chat):
     return tournament_doc.get('status', None)
 
 
-# Получаем участников по ID
+# Получаем участников по ID турнира
 def get_tournament_users_by_id(tournament_id):
     tournament_doc = collection.find_one({"id": tournament_id})
 
@@ -190,7 +188,7 @@ def get_tournament_users_by_chat_id(chat):
     return tournament_doc.get('users', None)
 
 
-# Получаем участников по ID чата
+# Получаем тип турнира по ID чата
 def get_tournament_type_by_chat_id(chat):
     tournament_doc = collection.find_one({"chat": chat})
 
@@ -198,6 +196,16 @@ def get_tournament_type_by_chat_id(chat):
         return None
 
     return tournament_doc.get('type', None)
+
+
+# Получаем игры по ID чата
+def get_tournament_games_by_chat_id(chat):
+    tournament_doc = collection.find_one({"chat": chat})
+
+    if not tournament_doc:
+        return None
+
+    return tournament_doc.get('games', None)
 
 
 # Получаем турнир по ID чата
