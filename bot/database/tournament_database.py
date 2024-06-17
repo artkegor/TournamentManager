@@ -133,6 +133,11 @@ def update_tournament_status(tournament_id, status):
     collection.update_one({'id': tournament_id}, {'$set': {'status': status}})
 
 
+# Обновляем статус турнира по ID чата
+def update_tournament_status_by_chat(chat, status):
+    collection.update_one({'chat': chat}, {'$set': {'status': status}})
+
+
 # Обновляем тип расписания турнира
 def update_tournament_schedule_type(tournament_id, status):
     collection.update_one({'id': tournament_id}, {'$set': {'type': status}})

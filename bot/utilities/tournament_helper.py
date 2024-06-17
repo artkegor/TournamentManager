@@ -157,6 +157,11 @@ def calculate_scores(games, users):
                     scores[game['second_player']] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
                                                      "games_left": {"played": 0, "all": all_games}}
 
+    for i in users:
+        if i not in scores:
+            scores[i] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
+                         "games_left": {"played": 0, "all": all_games}}
+
     sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]['score'], reverse=True))
 
     place = 1

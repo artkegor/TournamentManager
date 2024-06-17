@@ -67,9 +67,34 @@ def start_group(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('user'))
 def callback_query(call):
-    if not user_db.check_tournaments(call.message.chat.id):
+    results = user_db.get_user_tournaments_by_userid(call.message.chat.id)
+    if not results:
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='Кажется, вы еще не участвовали в турнирах!')
+                              text='Кажется, вы еще не участвовали в турнирах.', reply_markup=mk.back_markup())
+    else:
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text='ℹ️ Все турниры, в которых вы участвовали:', reply_markup=mk.my_markup(results))
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('back'))
+def callback_query(call):
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text='Добрый день!\n'
+                               'Готовы к новым победам? 🏆',
+                          reply_markup=mk.start_markup())
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('my'))
+def callback_query(call):
+    index = int(call.data.split('_')[1])
+    tourne_profile = user_db.get_user_tournaments_by_userid(call.message.chat.id)[index]
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text=f'{tourne_profile["title"]}\n\n'
+                               f'{tourne_profile["place"]}-е место 🏆\n'
+                               f'Очки: {tourne_profile["score"]}\n'
+                               f'Статистика: '
+                               f'{tourne_profile["games_results"]["wins"]}-{tourne_profile["games_results"]["draws"]}-{tourne_profile["games_results"]["losses"]}',
+                          reply_markup=mk.my_back_markup())
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('tourtype'))
@@ -132,10 +157,11 @@ def callback_query(call):
 
                 if tournament_type == 'free':
                     bot.delete_message(call.message.chat.id, call.message.message_id)
-                    bot.send_message(call.message.chat.id, 'Турнир объявляется открытым!\n\n'
-                                                           f'🫂 Зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}\n\n'
-                                                           f'❕ Турнир проводится в свободном расписании, '
-                                                           f'играйте с кем угодно и когда угодно.')
+                    bot.send_photo(call.message.chat.id, photo=open(f'bot/utilities/data/start.jpg', 'rb'),
+                                   caption='Турнир объявляется открытым!\n\n'
+                                           f'🫂 Зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}\n\n'
+                                           f'❕ Турнир проводится в свободном расписании, '
+                                           f'играйте с кем угодно и когда угодно.')
 
                 else:
                     bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -162,10 +188,13 @@ def callback_query(call):
 
                     bot.send_document(call.message.chat.id,
                                       document=open(f'bot/utilities/data/{tournament_id}.png', 'rb'),
-                                      caption='Расписание ☝\n\n'
-                                              'Турнир объявляется открытым!\n'
-                                              f'❕ Игры проводится по фиксированным датам.',
                                       visible_file_name='Расписание.png')
+                    bot.send_photo(call.message.chat.id,
+                                   photo=open(f'bot/utilities/data/start.jpg', 'rb'),
+                                   caption='Расписание ☝\n\n'
+                                           'Турнир объявляется открытым!\n'
+                                           f'❕Игры проводится по фиксированным датам.',
+                                   )
                     os.remove(f'bot/utilities/data/{tournament_id}.png')
 
             threading.Thread(target=starter_func(tournament_type)).start()
@@ -196,7 +225,7 @@ def delete_tournament(message):
             if admin.user.id == message.from_user.id:
                 status = tr_db.find_tournament_by_chat_id(message.chat.id)
                 if not status:
-                    bot.send_message(message.chat.id, 'Никакой турнир не запущен')
+                    bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
                 else:
                     users = tr_db.get_tournament_users_by_chat_id(message.chat.id)
                     user_db.update_users_with_current_tournament(False, users)
@@ -299,17 +328,52 @@ def table_tournament(message):
                           caption='Текущие результаты ☝', visible_file_name='Таблица.png')
         os.remove(f'bot/utilities/data/res_{tournament_id}.png')
     else:
-        bot.send_message(message.chat.id, 'Турнир не запущен.')
+        bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
 
 
 @bot.message_handler(commands=['finish'])
 def table_tournament(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
-    bot.send_message(message.chat.id, 'Подводим итоги ⌛')
+    if tr_db.get_tournament_status_by_chat_id(message.chat.id) == 'going':
+        users = tr_db.get_tournament_users_by_chat_id(message.chat.id)
+        games = tr_db.get_tournament_games_by_chat_id(message.chat.id)
+        tournament_id = tr_db.find_tournament_by_chat_id(message.chat.id)
 
-    users = tr_db.get_tournament_users_by_chat_id(message.chat.id)
+        tr_db.update_tournament_status_by_chat(message.chat.id, 'end')
+        user_db.update_users_with_current_tournament(False, users)
 
-    user_db.update_users_with_current_tournament(False, users)
+        bot.send_message(message.chat.id, 'Подводим итоги ⌛')
+
+        raw_dict = helper.calculate_scores(games, users)
+        for key, value in raw_dict.items():
+            raw_dict[key]['title'] = bot.get_chat(message.chat.id).title
+            user_db.insert_tournament_to_user(key, value)
+
+        new_dict = {}
+        for key in raw_dict.keys():
+            new_dict[bot.get_chat_member(message.chat.id, key).user.first_name] = raw_dict[key]
+
+        helper.save_tournament_results(tournament_id, bot.get_chat(message.chat.id).title, new_dict)
+        top_players = list(new_dict.items())[:3]
+        top_players_string = ""
+        medal_emojis = ["🥇", "🥈", "🥉"]
+        for i, (name, score) in enumerate(top_players):
+            if i < len(medal_emojis):
+                top_players_string += f"{medal_emojis[i]} {name} - {score['score']} очков\n\n"
+
+        bot.delete_message(message.chat.id, message.message_id + 1)
+
+        bot.send_document(message.chat.id, open(f'bot/utilities/data/res_{tournament_id}.png', 'rb'),
+                          visible_file_name='Таблица.png')
+        bot.send_photo(message.chat.id,
+                       photo=open(f'bot/utilities/data/finish.jpg', 'rb'),
+                       caption='Турнир завершен!\n\n'
+                               f'{top_players_string}')
+
+        tr_db.delete_tournament_by_chat_id(message.chat.id)
+        os.remove(f'bot/utilities/data/res_{tournament_id}.png')
+    else:
+        bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
 
 
 # Обработчик команд встроенного бота

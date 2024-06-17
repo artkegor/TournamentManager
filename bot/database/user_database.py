@@ -19,6 +19,17 @@ def insert_user(userid, username):
     collection.update_one(filter, update, upsert=True)
 
 
+# Вставляем оконченный турнир в документ пользователя
+def insert_tournament_to_user(user_id, tournament_data):
+    user = collection.find_one({"userId": user_id})
+    if user:
+        if "tournaments" not in user:
+            user["tournaments"] = []
+
+        user["tournaments"].append(tournament_data)
+        collection.update_one({"_id": user["_id"]}, {"$set": user})
+
+
 # Обновляем пользователям текущий турнир
 def update_users_with_current_tournament(current_chat, users):
     for i in users:
@@ -41,13 +52,11 @@ def get_user_document_by_username(username):
     return user_document
 
 
-# Проверяем участвовал ли пользователь в турнирах
-def check_tournaments(userid):
-    filter = {'userId': userid}
+# Получаем турниры пользователя
+def get_user_tournaments_by_userid(userid):
+    user_document = collection.find_one({'userId': userid})
 
-    result = collection.find_one(filter, {"tournaments": 1})
-
-    if result is None:
-        return None
+    if 'tournaments' in user_document:
+        return user_document['tournaments']
     else:
-        return result.get('tournaments', None)
+        return None
