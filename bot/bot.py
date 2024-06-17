@@ -17,6 +17,7 @@ bot.set_my_commands(commands=[types.BotCommand('/set', 'Внести игру'),
                               types.BotCommand('/table', 'Текущие результаты'),
                               types.BotCommand('/start', 'Перезапустить бота'),
                               types.BotCommand('/launch', 'Запустить турнир'),
+                              types.BotCommand('/finish', 'Завершить турнир'),
                               types.BotCommand('/delete', 'Удалить текущий турнир')])
 
 
@@ -187,7 +188,7 @@ def launch_tournament(message):
 
 
 @bot.message_handler(commands=['delete'])
-def launch_tournament(message):
+def delete_tournament(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
     if message.chat.type in ['group', 'supergroup']:
         admins = bot.get_chat_administrators(message.chat.id)
@@ -280,11 +281,11 @@ def set_message(message):
 
 
 @bot.message_handler(commands=['table'])
-def launch_tournament(message):
+def table_tournament(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
     if tr_db.get_tournament_status_by_chat_id(message.chat.id) == 'going':
         games = tr_db.get_tournament_games_by_chat_id(message.chat.id)
-        users = len(tr_db.get_tournament_users_by_chat_id(message.chat.id))
+        users = tr_db.get_tournament_users_by_chat_id(message.chat.id)
 
         raw_dict = helper.calculate_scores(games, users)
         new_dict = {}
@@ -301,6 +302,17 @@ def launch_tournament(message):
         bot.send_message(message.chat.id, 'Турнир не запущен.')
 
 
+@bot.message_handler(commands=['finish'])
+def table_tournament(message):
+    threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
+    bot.send_message(message.chat.id, 'Подводим итоги ⌛')
+
+    users = tr_db.get_tournament_users_by_chat_id(message.chat.id)
+
+    user_db.update_users_with_current_tournament(False, users)
+
+
+# Обработчик команд встроенного бота
 @bot.inline_handler(func=lambda query: len(query.query) > 0)
 def query_text(query):
     result = None

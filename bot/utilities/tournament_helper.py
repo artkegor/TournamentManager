@@ -75,9 +75,21 @@ def generate_and_save_tables(games, tournament_id, group_name):
 
 # Подсчитываем очки
 def calculate_scores(games, users):
-    all_games = (users - 1) * 2
+    all_games = (len(users) - 1) * 2
     scores = defaultdict(lambda: {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
                                   "games_left": {"played": 0, "all": all_games}})
+    if not games:
+        for i in users:
+            scores[i] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
+                         "games_left": {"played": 0, "all": 0}}
+            sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]['score'], reverse=True))
+
+            place = 1
+            for player_id, player_data in sorted_scores.items():
+                player_data['place'] = place
+                place += 1
+
+        return sorted_scores
 
     for game in games:
         if 'first_game_results' in game:
