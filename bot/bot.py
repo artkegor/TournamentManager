@@ -280,8 +280,17 @@ def launch_tournament(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
     if tr_db.get_tournament_status_by_chat_id(message.chat.id) == 'going':
         games = tr_db.get_tournament_games_by_chat_id(message.chat.id)
-        scores_dict = helper.calculate_scores(games)
-        helper.generate_current_table(scores_dict)
+        raw_dict = helper.calculate_scores(games)
+        new_dict = {}
+        for key in raw_dict.keys():
+            new_dict[bot.get_chat_member(message.chat.id, key).user.first_name] = raw_dict[key]
+        tournament_id = tr_db.find_tournament_by_chat_id(message.chat.id)
+
+        helper.save_tournament_results(tournament_id, bot.get_chat(message.chat.id).title, new_dict)
+
+        bot.send_document(message.chat.id,
+                          document=open(f'bot/utilities/data/res_{tournament_id}.png', 'rb'),
+                          caption='Текущие результаты ☝')
     else:
         bot.send_message(message.chat.id, 'Турнир не запущен.')
 

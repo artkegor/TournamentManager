@@ -130,5 +130,39 @@ def calculate_scores(games):
 
 
 # Создаем табличку текущих результатов
-def generate_current_table(games):
-    print(games)
+def save_tournament_results(tournament_id, group_title, results):
+    table_data = []
+    for player, details in results.items():
+        result_str = f'{details["games_results"]["wins"]}-{details["games_results"]["draws"]}-{details["games_results"]["losses"]}'
+        table_data.append([details['place'], player, result_str, details['score']])
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    fig.patch.set_facecolor('#022027')
+
+    cell_colors = [['#022027'] * len(row) for row in table_data]
+    col_label_colors = ['#022027'] * len(table_data[0])
+    table = ax.table(cellText=table_data,
+                     cellColours=cell_colors,
+                     colLabels=["Место", "Имя", "Результаты", "Очки"],
+                     colColours=col_label_colors,
+                     loc='center',
+                     cellLoc='center')
+
+    for key, cell in table.get_celld().items():
+        if isinstance(key, str):
+            continue
+        cell.set_edgecolor('#009900')
+        cell.set_text_props(color='white')
+
+    ax.text(0.05, 0.95, f'Текущие результаты турнира "{group_title}"', transform=ax.transAxes, color='white',
+            fontsize=14)
+
+    plt.tight_layout()
+    plt.axis('off')
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    img = Image.open(buf)
+
+    img.save(f'bot/utilities/data/res_{tournament_id}.png')
