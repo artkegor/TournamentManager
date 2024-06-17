@@ -119,10 +119,10 @@ def calculate_scores(games, users):
             except:
                 if game['first_player'] not in scores:
                     scores[game['first_player']] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
-                                                    "games_left": {"played": 0, "all": 0}}
+                                                    "games_left": {"played": 0, "all": all_games}}
                 if game['second_player'] not in scores:
                     scores[game['second_player']] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
-                                                     "games_left": {"played": 0, "all": 0}}
+                                                     "games_left": {"played": 0, "all": all_games}}
 
         if 'second_game_results' in game:
             try:
@@ -151,11 +151,11 @@ def calculate_scores(games, users):
             except:
                 if game['first_player'] not in scores:
                     scores[game['first_player']] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
-                                                    "games_left": {"played": 0, "all": 0}}
+                                                    "games_left": {"played": 0, "all": all_games}}
 
                 if game['second_player'] not in scores:
                     scores[game['second_player']] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
-                                                     "games_left": {"played": 0, "all": 0}}
+                                                     "games_left": {"played": 0, "all": all_games}}
 
     sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]['score'], reverse=True))
 
