@@ -44,11 +44,11 @@ def group_start_markup():
     return markup
 
 
-def tournament_type():
+def tournament_type(name):
     markup = types.InlineKeyboardMarkup()
 
-    markup.add(types.InlineKeyboardButton(text='Свободное расписание 🟢', callback_data='newtour_free'))
-    markup.add(types.InlineKeyboardButton(text='Фиксированное расписание 🔵', callback_data='newtour_fix'))
+    markup.add(types.InlineKeyboardButton(text='Свободное расписание 🟢', callback_data=f'nw_free_{name}'))
+    markup.add(types.InlineKeyboardButton(text='Фиксированное расписание 🔵', callback_data=f'nw_fix_{name}'))
 
     return markup
 

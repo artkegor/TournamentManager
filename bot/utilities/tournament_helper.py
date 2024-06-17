@@ -176,7 +176,7 @@ def calculate_scores(games, users):
 def save_tournament_results(tournament_id, group_title, results):
     table_data = []
     for player, details in results.items():
-        result_str = f'{details["games_results"]["wins"]}-{details["games_results"]["draws"]}-{details["games_results"]["losses"]}'
+        result_str = f'{details["games_results"]["wins"]} - {details["games_results"]["draws"]} - {details["games_results"]["losses"]}'
         games_left = f'{details["games_left"]["played"]}/{details["games_left"]["all"]}'
         table_data.append([details['place'], player, games_left, result_str, details['score']])
 
@@ -187,7 +187,7 @@ def save_tournament_results(tournament_id, group_title, results):
     col_label_colors = ['#022027'] * len(table_data[0])
     table = ax.table(cellText=table_data,
                      cellColours=cell_colors,
-                     colLabels=["Место", "Имя", "Игры", "Результаты", "Очки"],
+                     colLabels=["Место", "Имя", "Игры", "В - Н - П", "Очки"],
                      colColours=col_label_colors,
                      loc='center',
                      cellLoc='center')

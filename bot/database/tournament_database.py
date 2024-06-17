@@ -13,7 +13,7 @@ def print_all_data():
 
 
 # Вставляем в БД новый турнир
-def insert_tournament(tournament_id, chat_id, name, status, type):
+def insert_tournament(tournament_id, chat_id, status, type, name_entered):
     existing_tournament = collection.find_one({"chat": chat_id})
 
     if existing_tournament:
@@ -22,7 +22,7 @@ def insert_tournament(tournament_id, chat_id, name, status, type):
     new_tournament = {
         "id": tournament_id,
         "chat": chat_id,
-        "name": name,
+        "name_entered": name_entered,
         "status": status,
         "type": type,
         "users": [],
@@ -171,6 +171,16 @@ def get_tournament_status_by_chat_id(chat):
         return None
 
     return tournament_doc.get('status', None)
+
+
+# Получаем имя турнира по ID чата
+def get_tournament_name_by_chat_id(chat):
+    tournament_doc = collection.find_one({"chat": chat})
+
+    if not tournament_doc:
+        return None
+
+    return tournament_doc.get('name_entered', None)
 
 
 # Получаем участников по ID турнира
