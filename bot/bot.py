@@ -1,3 +1,4 @@
+import os
 import re
 import time
 import uuid
@@ -13,6 +14,7 @@ import bot.database.tournament_database as tr_db
 import bot.utilities.tournament_helper as helper
 
 bot.set_my_commands(commands=[types.BotCommand('/set', 'Внести игру'),
+                              types.BotCommand('/table', 'Текущие результаты'),
                               types.BotCommand('/start', 'Перезапустить бота'),
                               types.BotCommand('/launch', 'Запустить турнир'),
                               types.BotCommand('/delete', 'Удалить текущий турнир')])
@@ -111,7 +113,7 @@ def callback_query(call):
                                                        'До конца регистрации 30 секунд.\n\n'
                                                        f'Присоединились: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}',
                                                   reply_markup=mk.new_tournament(tournament_id))
-                        except NotImplementedError:
+                        except:
                             if not tr_db.get_tournament_users_by_id(tournament_id):
                                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                                       text='Турнир был удален.')
@@ -161,7 +163,9 @@ def callback_query(call):
                                       document=open(f'bot/utilities/data/{tournament_id}.png', 'rb'),
                                       caption='Расписание ☝\n\n'
                                               'Турнир объявляется открытым!\n'
-                                              f'❕ Игры проводится по фиксированным датам.')
+                                              f'❕ Игры проводится по фиксированным датам.',
+                                      visible_file_name='Расписание.png')
+                    os.remove(f'bot/utilities/data/{tournament_id}.png')
 
             threading.Thread(target=starter_func(tournament_type)).start()
 
@@ -247,7 +251,7 @@ def set_message(message):
                                                                   f'@{message.from_user.username} {score} {username}')
                         else:
                             bot.send_message(message.chat.id, 'Вы уже внесли две игры с этим пользователем.')
-                    elif game['type'] == 'fix':
+                    elif tourne == 'fix':
                         game_date_str = game['date']
                         game_date = datetime.strptime(game_date_str, '%d/%m/%y')
                         today_date = datetime.now()
@@ -280,17 +284,19 @@ def launch_tournament(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
     if tr_db.get_tournament_status_by_chat_id(message.chat.id) == 'going':
         games = tr_db.get_tournament_games_by_chat_id(message.chat.id)
-        raw_dict = helper.calculate_scores(games)
+        users = len(tr_db.get_tournament_users_by_chat_id(message.chat.id))
+
+        raw_dict = helper.calculate_scores(games, users)
         new_dict = {}
         for key in raw_dict.keys():
             new_dict[bot.get_chat_member(message.chat.id, key).user.first_name] = raw_dict[key]
         tournament_id = tr_db.find_tournament_by_chat_id(message.chat.id)
 
         helper.save_tournament_results(tournament_id, bot.get_chat(message.chat.id).title, new_dict)
-
         bot.send_document(message.chat.id,
                           document=open(f'bot/utilities/data/res_{tournament_id}.png', 'rb'),
-                          caption='Текущие результаты ☝')
+                          caption='Текущие результаты ☝', visible_file_name='Таблица.png')
+        os.remove(f'bot/utilities/data/res_{tournament_id}.png')
     else:
         bot.send_message(message.chat.id, 'Турнир не запущен.')
 
@@ -380,7 +386,7 @@ def query_text(query):
                             description=description,
                             input_message_content=types.InputTextMessageContent(description)
                         )
-                elif game['type'] == 'fix':
+                elif tourne == 'fix':
                     game_date_str = game['date']
                     game_date = datetime.strptime(game_date_str, '%d/%m/%y')
                     today_date = datetime.now()

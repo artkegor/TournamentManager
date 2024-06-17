@@ -74,50 +74,75 @@ def generate_and_save_tables(games, tournament_id, group_name):
 
 
 # Подсчитываем очки
-def calculate_scores(games):
-    scores = defaultdict(lambda: {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0}})
+def calculate_scores(games, users):
+    all_games = (users - 1) * 2
+    scores = defaultdict(lambda: {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
+                                  "games_left": {"played": 0, "all": all_games}})
 
     for game in games:
         if 'first_game_results' in game:
-            first_player = game['first_game_results']['first_player']
-            second_player = game['first_game_results']['second_player']
+            try:
+                first_player = game['first_game_results']['first_player']
+                second_player = game['first_game_results']['second_player']
 
-            first_score = int(game['first_game_results']['score'].split(':')[0])
-            second_score = int(game['first_game_results']['score'].split(':')[1])
-            if first_score > second_score:
-                scores[first_player]['score'] += 3
-                scores[first_player]['games_results']['wins'] += 1
-                scores[second_player]['games_results']['losses'] += 1
-            elif first_score < second_score:
-                scores[second_player]['score'] += 3
-                scores[second_player]['games_results']['wins'] += 1
-                scores[first_player]['games_results']['losses'] += 1
-            else:
-                scores[first_player]['score'] += 1
-                scores[second_player]['score'] += 1
-                scores[first_player]['games_results']['draws'] += 1
-                scores[second_player]['games_results']['draws'] += 1
+                first_score = int(game['first_game_results']['score'].split(':')[0])
+                second_score = int(game['first_game_results']['score'].split(':')[1])
+                if first_score > second_score:
+                    scores[first_player]['score'] += 3
+                    scores[first_player]['games_results']['wins'] += 1
+                    scores[second_player]['games_results']['losses'] += 1
+                elif first_score < second_score:
+                    scores[second_player]['score'] += 3
+                    scores[second_player]['games_results']['wins'] += 1
+                    scores[first_player]['games_results']['losses'] += 1
+                else:
+                    scores[first_player]['score'] += 1
+                    scores[second_player]['score'] += 1
+                    scores[first_player]['games_results']['draws'] += 1
+                    scores[second_player]['games_results']['draws'] += 1
+
+                scores[first_player]['games_left']['played'] += 1
+                scores[second_player]['games_left']['played'] += 1
+            except:
+                if game['first_player'] not in scores:
+                    scores[game['first_player']] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
+                                                    "games_left": {"played": 0, "all": 0}}
+                if game['second_player'] not in scores:
+                    scores[game['second_player']] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
+                                                     "games_left": {"played": 0, "all": 0}}
 
         if 'second_game_results' in game:
-            first_player = game['second_game_results']['first_player']
-            second_player = game['second_game_results']['second_player']
+            try:
+                first_player = game['second_game_results']['first_player']
+                second_player = game['second_game_results']['second_player']
 
-            first_score = int(game['second_game_results']['score'].split(':')[0])
-            second_score = int(game['second_game_results']['score'].split(':')[1])
+                first_score = int(game['second_game_results']['score'].split(':')[0])
+                second_score = int(game['second_game_results']['score'].split(':')[1])
 
-            if first_score > second_score:
-                scores[first_player]['score'] += 3
-                scores[first_player]['games_results']['wins'] += 1
-                scores[second_player]['games_results']['losses'] += 1
-            elif first_score < second_score:
-                scores[second_player]['score'] += 3
-                scores[second_player]['games_results']['wins'] += 1
-                scores[first_player]['games_results']['losses'] += 1
-            else:
-                scores[first_player]['score'] += 1
-                scores[second_player]['score'] += 1
-                scores[first_player]['games_results']['draws'] += 1
-                scores[second_player]['games_results']['draws'] += 1
+                if first_score > second_score:
+                    scores[first_player]['score'] += 3
+                    scores[first_player]['games_results']['wins'] += 1
+                    scores[second_player]['games_results']['losses'] += 1
+                elif first_score < second_score:
+                    scores[second_player]['score'] += 3
+                    scores[second_player]['games_results']['wins'] += 1
+                    scores[first_player]['games_results']['losses'] += 1
+                else:
+                    scores[first_player]['score'] += 1
+                    scores[second_player]['score'] += 1
+                    scores[first_player]['games_results']['draws'] += 1
+                    scores[second_player]['games_results']['draws'] += 1
+
+                scores[first_player]['games_left']['played'] += 1
+                scores[second_player]['games_left']['played'] += 1
+            except:
+                if game['first_player'] not in scores:
+                    scores[game['first_player']] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
+                                                    "games_left": {"played": 0, "all": 0}}
+
+                if game['second_player'] not in scores:
+                    scores[game['second_player']] = {"score": 0, "games_results": {"wins": 0, "draws": 0, "losses": 0},
+                                                     "games_left": {"played": 0, "all": 0}}
 
     sorted_scores = dict(sorted(scores.items(), key=lambda item: item[1]['score'], reverse=True))
 
@@ -134,7 +159,8 @@ def save_tournament_results(tournament_id, group_title, results):
     table_data = []
     for player, details in results.items():
         result_str = f'{details["games_results"]["wins"]}-{details["games_results"]["draws"]}-{details["games_results"]["losses"]}'
-        table_data.append([details['place'], player, result_str, details['score']])
+        games_left = f'{details["games_left"]["played"]}/{details["games_left"]["all"]}'
+        table_data.append([details['place'], player, games_left, result_str, details['score']])
 
     fig, ax = plt.subplots(figsize=(10, 8))
     fig.patch.set_facecolor('#022027')
@@ -143,7 +169,7 @@ def save_tournament_results(tournament_id, group_title, results):
     col_label_colors = ['#022027'] * len(table_data[0])
     table = ax.table(cellText=table_data,
                      cellColours=cell_colors,
-                     colLabels=["Место", "Имя", "Результаты", "Очки"],
+                     colLabels=["Место", "Имя", "Игры", "Результаты", "Очки"],
                      colColours=col_label_colors,
                      loc='center',
                      cellLoc='center')
