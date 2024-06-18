@@ -1,5 +1,7 @@
 import pymongo
 from datetime import timedelta, datetime
+import locale
+import datetime
 
 client = pymongo.MongoClient('mongodb://localhost:27017/')
 db = client['Tournaments']
@@ -56,7 +58,7 @@ def insert_schedule_to_tournament(schedule_list, tournament_id):
 
     if tournament:
         game_id_counter = len(tournament.get("games", [])) + 1
-        start_date = datetime.now().date()
+        start_date = datetime.datetime.now().date()
 
         for game_set_index, game_set in enumerate(schedule_list):
             if game_set_index == 0:
@@ -105,18 +107,24 @@ def add_new_game(chat_id, first_player, second_player):
 def insert_game_result(chat_id, game_id, score, games_left, user_id_1, user_id_2):
     game = find_game_by_id(chat_id, game_id)
     if game:
+        locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+        now = datetime.datetime.now()
         if games_left == 2:
             game['first_game_results'] = {
                 'first_player': user_id_1,
                 'second_player': user_id_2,
-                'score': score
+                'score': score,
+                'date': now.strftime('%a %d.%m.%Y').upper(),
+                'time': now.strftime('%H:%M')
             }
             games_left -= 1
         elif games_left == 1:
             game['second_game_results'] = {
                 'first_player': user_id_1,
                 'second_player': user_id_2,
-                'score': score
+                'score': score,
+                'date': now.strftime('%a %d.%m.%Y').upper(),
+                'time': now.strftime('%H:%M')
             }
             games_left -= 1
         collection.update_one({'chat': chat_id, 'games.game_id': game_id},
@@ -221,6 +229,26 @@ def get_tournament_games_by_chat_id(chat):
         return None
 
     return tournament_doc.get('games', None)
+
+
+def get_played_games_by_chat_id(chat):
+    tournament_doc = collection.find_one({"chat": chat})
+
+    if tournament_doc:
+        game_results = []
+
+        for game in tournament_doc.get('games', []):
+            if game.get('first_game_results') and game.get('second_game_results'):
+                game_results.append(game['first_game_results'])
+                game_results.append(game['second_game_results'])
+            elif game.get('first_game_results'):
+                game_results.append(game['first_game_results'])
+            elif game.get('second_game_results'):
+                game_results.append(game['second_game_results'])
+
+        return game_results
+    else:
+        return None
 
 
 # Получаем турнир по ID чата

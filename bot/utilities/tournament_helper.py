@@ -210,3 +210,39 @@ def save_tournament_results(tournament_id, group_title, results):
     img = Image.open(buf)
 
     img.save(f'bot/utilities/data/res_{tournament_id}.png')
+
+
+def save_match_table(match_data, tournament_id, group_title):
+    sorted_matches = sorted(match_data, key=lambda x: (x['date'], x['time']))
+
+    table_data = [[match['first_player'], match['score'], match['second_player'], match['date'], match['time']] for
+                  match in sorted_matches]
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    fig.patch.set_facecolor('#022027')
+
+    cell_colors = [['#022027'] * len(row) for row in table_data]
+    col_label_colors = ['#022027'] * len(table_data[0])
+    table = ax.table(cellText=table_data,
+                     cellColours=cell_colors,
+                     colLabels=['Первый игрок', 'Счет', 'Второй игрок', 'Дата', 'Время'],
+                     colColours=col_label_colors,
+                     loc='center',
+                     cellLoc='center')
+
+    for key, cell in table.get_celld().items():
+        if isinstance(key, str):
+            continue
+        cell.set_edgecolor('#009900')
+        cell.set_text_props(color='white')
+
+    ax.text(0.05, 0.95, f'Сыгранные игры турнира "{group_title}"', transform=ax.transAxes, color='white', fontsize=14)
+
+    plt.tight_layout()
+    plt.axis('off')
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    img = Image.open(buf)
+    img.save(f'bot/utilities/data/played_{tournament_id}.png')
