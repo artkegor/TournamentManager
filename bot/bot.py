@@ -286,7 +286,6 @@ def launch_tournament(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('cnf_'))
 def callback_query(call):
-    print('1')
     ans = call.data.split('_')[1]
     id = int(call.data.split('_')[2])
     if id == call.from_user.id:
