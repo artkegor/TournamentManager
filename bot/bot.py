@@ -16,16 +16,27 @@ import bot.utilities.tournament_helper as helper
 bot.set_my_commands(commands=[types.BotCommand('/rules', 'Правила пользования'),
                               types.BotCommand('/set', 'Внести игру'),
                               types.BotCommand('/table', 'Текущие результаты'),
+                              types.BotCommand('/quit', 'Покинуть турнир'),
                               types.BotCommand('/start', 'Перезапустить бота'),
                               types.BotCommand('/launch', 'Запустить турнир'),
                               types.BotCommand('/finish', 'Завершить турнир'),
                               types.BotCommand('/delete', 'Удалить текущий турнир')])
 
 
+@bot.message_handler(content_types=['new_chat_members'])
+def start_group(message):
+    if message.new_chat_members[0].username == 'TournamentManagebot':
+        bot.send_message(message.chat.id, "Привет!\n"
+                                          "Я здесь новенький.\n\n"
+                                          "Нажми на кнопку снизу чтобы начать турнир.",
+                         reply_markup=mk.group_start_markup())
+
+
 @bot.message_handler(commands=['rules'])
 def start_message(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
-    bot.send_message(message.chat.id, 'Скоро здесь появится FAQ по использованию бота.')
+    bot.send_message(message.chat.id, 'Инструкция по использованию бота:\n\n'
+                                      'https://grabovsky.notion.site/0885db94e2c84e6e9c42150826b814ca?pvs=4')
 
 
 @bot.message_handler(commands=['start'])
@@ -63,15 +74,6 @@ def start_message(message):
             bot.send_message(message.chat.id, 'Чтобы использовать бота установите себе юзернейм.')
 
 
-@bot.message_handler(content_types=['new_chat_members'])
-def start_group(message):
-    if message.new_chat_members[0].username == 'TournamentManagebot':
-        bot.send_message(message.chat.id, "Привет!\n"
-                                          "Я здесь новенький.\n\n"
-                                          "Нажми на кнопку снизу чтобы начать турнир.",
-                         reply_markup=mk.group_start_markup())
-
-
 @bot.callback_query_handler(func=lambda call: call.data.startswith('user'))
 def callback_query(call):
     results = user_db.get_user_tournaments_by_userid(call.message.chat.id)
@@ -105,15 +107,6 @@ def callback_query(call):
                           reply_markup=mk.my_back_markup())
 
 
-def get_name(message):
-    admins = bot.get_chat_administrators(message.chat.id)
-    for admin in admins:
-        if admin.user.id == message.from_user.id:
-            name = message.text
-            bot.send_message(chat_id=message.chat.id,
-                             text='Выберите тип турнира:', reply_markup=mk.tournament_type(name))
-
-
 @bot.callback_query_handler(func=lambda call: call.data.startswith('tourtype'))
 def callback_query(call):
     admins = bot.get_chat_administrators(call.message.chat.id)
@@ -128,13 +121,24 @@ def callback_query(call):
                 bot.register_next_step_handler(call.message, lambda message: get_name(message))
 
 
+def get_name(message):
+    name = message.text
+    with open(f'bot/cache/{message.chat.id}.txt', 'w') as f:
+        f.write(name)
+    bot.send_message(chat_id=message.chat.id,
+                     text='Выберите тип турнира:', reply_markup=mk.tournament_type())
+
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith('nw_'))
 def callback_query(call):
     admins = bot.get_chat_administrators(call.message.chat.id)
     for admin in admins:
         if admin.user.id == call.from_user.id:
             tournament_type = call.data.split('_')[1]
-            name = call.data.split('_')[2]
+            with open(f'bot/cache/{call.message.chat.id}.txt', 'r') as f:
+                name = f.readline().strip()
+            os.remove(f'bot/cache/{call.message.chat.id}.txt')
+
             tournament_id = str(random.randint(100000, 999999))
 
             tr_db.insert_tournament(tournament_id, call.message.chat.id,
@@ -159,7 +163,7 @@ def callback_query(call):
                                                        f'Присоединились: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}',
                                                   reply_markup=mk.new_tournament(tournament_id))
                         except:
-                            if not tr_db.get_tournament_users_by_id(tournament_id):
+                            if not tr_db.get_tournament_status_by_chat_id(call.message.chat.id):
                                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                                       text='Турнир был удален.')
                                 return
@@ -260,7 +264,22 @@ def delete_tournament(message):
                     users = tr_db.get_tournament_users_by_chat_id(message.chat.id)
                     user_db.update_users_with_current_tournament(False, users)
                     tr_db.delete_tournament_by_chat_id(message.chat.id)
-                    bot.send_message(message.chat.id, 'Текущий турнир удален')
+                    bot.send_message(message.chat.id, 'Текущий турнир удален.')
+    else:
+        bot.send_message(message.chat.id, 'Команда применима только в группе.')
+
+
+@bot.message_handler(commands=['quit'])
+def launch_tournament(message):
+    threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
+    if message.chat.type in ['group', 'supergroup']:
+        if tr_db.get_tournament_status_by_chat_id(
+                message.chat.id) == 'register' and message.from_user.id in tr_db.get_tournament_users_by_chat_id(
+            message.chat.id):
+            tr_db.remove_user_from_tournament(message.chat.id, message.from_user.id)
+            bot.send_message(message.chat.id, f'{message.from_user.first_name} покинул турнир.')
+        else:
+            bot.send_message(message.chat.id, 'Вы не состоите в турнире этой группы, или регистрация уже кончилась.')
     else:
         bot.send_message(message.chat.id, 'Команда применима только в группе.')
 

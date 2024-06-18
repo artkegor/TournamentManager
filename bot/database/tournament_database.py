@@ -246,6 +246,14 @@ def find_game_by_users_and_chat(user_id_1, user_id_2, chat_id):
         return None
 
 
+# Удаляем пользователя из турнира
+def remove_user_from_tournament(chat_id, user_id):
+    collection.update_one(
+        {"chat": chat_id},
+        {"$pull": {"users": user_id}}
+    )
+
+
 # Удаляем турнир
 def delete_tournament_by_chat_id(chat_id):
     collection.delete_one({"chat": chat_id})
