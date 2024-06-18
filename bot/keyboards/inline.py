@@ -60,3 +60,12 @@ def new_tournament(game_id):
                                           url=f'https://t.me/tournamentmanagebot?start={game_id}'))
 
     return markup
+
+
+def confirm_markup(id):
+    markup = types.InlineKeyboardMarkup()
+
+    markup.add(types.InlineKeyboardButton(text='Подтвердить ✅', callback_data=f'cnf_y_{id}'))
+    markup.add(types.InlineKeyboardButton(text='Отменить ❌', callback_data=f'cnf_n_{id}'))
+
+    return markup
