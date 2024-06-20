@@ -160,7 +160,7 @@ def callback_query(call):
                         try:
                             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                                   text=f'Турнир создан.\n'
-                                                       'До конца регистрации 30 секунд.\n\n'
+                                                       'До конца регистрации 24 часа.\n\n'
                                                        f'Присоединились: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}',
                                                   reply_markup=mk.new_tournament(tournament_id))
                         except:
