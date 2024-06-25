@@ -153,7 +153,7 @@ def callback_query(call):
 
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   text=f'Турнир создан.\n'
-                                       'До конца регистрации 30 секунд.',
+                                       'До конца регистрации 24 часа.',
                                   reply_markup=mk.new_tournament(tournament_id))
 
             def starter_func(tournament_type, entered_name):
