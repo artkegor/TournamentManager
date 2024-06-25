@@ -19,6 +19,7 @@ bot.set_my_commands(commands=[types.BotCommand('/rules', 'Правила пол�
                               types.BotCommand('/games', 'Сыгранные игры'),
                               types.BotCommand('/quit', 'Покинуть турнир'),
                               types.BotCommand('/start', 'Перезапустить бота'),
+                              types.BotCommand('/members', 'Участники турнира'),
                               types.BotCommand('/add', 'Добавить игроков в турнир'),
                               types.BotCommand('/admin_set', 'Админ вносит игру'),
                               types.BotCommand('/launch', 'Запустить турнир'),
@@ -160,21 +161,6 @@ def callback_query(call):
                     time.sleep(5)
                     if tr_db.get_tournament_status_by_id(tournament_id) == 'going':
                         break
-                    else:
-                        users = tr_db.get_tournament_users_by_id(tournament_id)
-                        try:
-                            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                                  text=f'Турнир создан.\n'
-                                                       'До конца регистрации 24 часа.\n\n'
-                                                       f'Присоединились: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}',
-                                                  reply_markup=mk.new_tournament(tournament_id))
-                        except:
-                            if not tr_db.get_tournament_status_by_chat_id(call.message.chat.id):
-                                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                                      text='Турнир был удален.')
-                                return
-                            else:
-                                pass
 
                 users = tr_db.get_tournament_users_by_id(tournament_id)
                 user_db.update_users_with_current_tournament(call.message.chat.id, users)
@@ -286,6 +272,18 @@ def launch_tournament(message):
             bot.send_message(message.chat.id, f'{message.from_user.first_name} покинул турнир.')
         else:
             bot.send_message(message.chat.id, 'Вы не состоите в турнире этой группы, или регистрация уже кончилась.')
+    else:
+        bot.send_message(message.chat.id, 'Команда применима только в группе.')
+
+
+@bot.message_handler(commands=['members'])
+def members_tournament(message):
+    threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
+    if message.chat.type in ['group', 'supergroup']:
+        users = tr_db.get_tournament_users_by_chat_id(message.chat.id)
+        bot.send_message(
+            f'В турнире участвуют: {", ".join(str(bot.get_chat_member(message.chat.id, x).user.first_name) for x in users)}'
+            f'')
     else:
         bot.send_message(message.chat.id, 'Команда применима только в группе.')
 
