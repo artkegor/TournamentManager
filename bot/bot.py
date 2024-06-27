@@ -284,8 +284,9 @@ def members_tournament(message):
         if not users:
             bot.send_message(message.chat.id, 'Турнир не запущен или никто пока не присоединился.')
         else:
+            sepa = '\n'
             bot.send_message(message.chat.id,
-                             f'В турнире участвуют: {", ".join(str(bot.get_chat_member(message.chat.id, x).user.first_name) for x in users)}')
+                             f'В турнире участвуют: {f"{sepa}".join(str(bot.get_chat_member(message.chat.id, x).user.first_name) for x in users)}.')
     else:
         bot.send_message(message.chat.id, 'Команда применима только в группе.')
 
