@@ -281,9 +281,11 @@ def members_tournament(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
     if message.chat.type in ['group', 'supergroup']:
         users = tr_db.get_tournament_users_by_chat_id(message.chat.id)
-        bot.send_message(
-            f'В турнире участвуют: {", ".join(str(bot.get_chat_member(message.chat.id, x).user.first_name) for x in users)}'
-            f'')
+        if not users:
+            bot.send_message(message.chat.id, 'Турнир не запущен или никто пока не присоединился.')
+        else:
+            bot.send_message(message.chat.id,
+                             f'В турнире участвуют: {", ".join(str(bot.get_chat_member(message.chat.id, x).user.first_name) for x in users)}')
     else:
         bot.send_message(message.chat.id, 'Команда применима только в группе.')
 
