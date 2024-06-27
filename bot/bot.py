@@ -360,6 +360,7 @@ def set_message(message):
             bot.send_message(message.chat.id, 'Чтобы внести игру, введите ник оппонента и счет.')
         else:
             cmd, username, score = message.text.split()
+            score = score.replace('-', ':')
             first_player = message.from_user.id
             second_player = user_db.get_user_document_by_username(username[1:])['userId']
             chat_id_1 = user_db.get_user_document_by_username(message.from_user.username)['current_chat']

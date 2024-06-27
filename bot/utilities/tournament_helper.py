@@ -98,8 +98,8 @@ def calculate_scores(games, users):
                 first_player = game['first_game_results']['first_player']
                 second_player = game['first_game_results']['second_player']
 
-                first_score = int(game['first_game_results']['score'].split(':')[0])
-                second_score = int(game['first_game_results']['score'].split(':')[1])
+                first_score = int(game['first_game_results']['score'].replace('-', ':').split(':')[0])
+                second_score = int(game['first_game_results']['score'].replace('-', ':').split(':')[1])
                 if first_score > second_score:
                     scores[first_player]['score'] += 3
                     scores[first_player]['games_results']['wins'] += 1
@@ -129,8 +129,8 @@ def calculate_scores(games, users):
                 first_player = game['second_game_results']['first_player']
                 second_player = game['second_game_results']['second_player']
 
-                first_score = int(game['second_game_results']['score'].split(':')[0])
-                second_score = int(game['second_game_results']['score'].split(':')[1])
+                first_score = int(game['second_game_results']['score'].replace('-', ':').split(':')[0])
+                second_score = int(game['second_game_results']['score'].replace('-', ':').split(':')[1])
 
                 if first_score > second_score:
                     scores[first_player]['score'] += 3
@@ -215,8 +215,10 @@ def save_tournament_results(tournament_id, group_title, results):
 def save_match_table(match_data, tournament_id, group_title):
     sorted_matches = sorted(match_data, key=lambda x: (x['date'], x['time']))
 
-    table_data = [[match['first_player'], match['score'], match['second_player'], match['date'], match['time']] for
-                  match in sorted_matches]
+    table_data = [
+        [match['first_player'], match['score'].replace('-', ':'), match['second_player'], match['date'], match['time']]
+        for
+        match in sorted_matches]
 
     fig, ax = plt.subplots(figsize=(10, 8))
     fig.patch.set_facecolor('#022027')
