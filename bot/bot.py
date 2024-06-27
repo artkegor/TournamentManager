@@ -54,7 +54,7 @@ def start_message(message):
     else:
         if message.from_user.username:
             if ' ' in message.text:
-                if not user_db.get_user_document_by_userid(message.chat.id):
+                if not user_db.get_user_document_by_username(message.from_user.username):
                     user_db.insert_user(message.chat.id, message.from_user.username)
                 if not user_db.get_user_document_by_userid(message.chat.id)['current_chat']:
                     args = message.text.split()[1]
