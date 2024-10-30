@@ -212,11 +212,13 @@ def save_tournament_results(tournament_id, group_title, results):
     img.save(f'bot/utilities/data/res_{tournament_id}.png')
 
 
+# Сыгранные игры
 def save_match_table(match_data, tournament_id, group_title):
     sorted_matches = sorted(match_data, key=lambda x: (x['date'], x['time']))
 
     table_data = [
-        [match['first_player'], match['score'].replace('-', ':'), match['second_player'], match['date'], match['time']]
+        [match['number'], match['first_player'], match['score'].replace('-', ':'), match['second_player'],
+         match['date'], match['time']]
         for
         match in sorted_matches]
 
@@ -227,7 +229,7 @@ def save_match_table(match_data, tournament_id, group_title):
     col_label_colors = ['#022027'] * len(table_data[0])
     table = ax.table(cellText=table_data,
                      cellColours=cell_colors,
-                     colLabels=['Первый игрок', 'Счет', 'Второй игрок', 'Дата', 'Время'],
+                     colLabels=['Номер игры', 'Первый игрок', 'Счет', 'Второй игрок', 'Дата', 'Время'],
                      colColours=col_label_colors,
                      loc='center',
                      cellLoc='center')

@@ -27,6 +27,7 @@ def insert_tournament(tournament_id, chat_id, status, type, name_entered):
         "name_entered": name_entered,
         "status": status,
         "type": type,
+        'current_game_number': 1,
         "users": [],
         "games": []
     }
@@ -106,11 +107,13 @@ def add_new_game(chat_id, first_player, second_player):
 # Вставлем результат игры
 def insert_game_result(chat_id, game_id, score, games_left, user_id_1, user_id_2):
     game = find_game_by_id(chat_id, game_id)
+    number = get_current_game(chat_id)
     if game:
         locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
         now = datetime.datetime.now()
         if games_left == 2:
             game['first_game_results'] = {
+                'number': number,
                 'first_player': user_id_1,
                 'second_player': user_id_2,
                 'score': score,
@@ -120,6 +123,7 @@ def insert_game_result(chat_id, game_id, score, games_left, user_id_1, user_id_2
             games_left -= 1
         elif games_left == 1:
             game['second_game_results'] = {
+                'number': number,
                 'first_player': user_id_1,
                 'second_player': user_id_2,
                 'score': score,
@@ -134,6 +138,31 @@ def insert_game_result(chat_id, game_id, score, games_left, user_id_1, user_id_2
         return True
     else:
         return False
+
+
+# Обновляем результат игры
+def update_game_score(chat_id, game_number, new_score):
+    document = collection.find_one({'chat': chat_id})
+
+    if document:
+        for game in document.get('games', []):
+            if int(game.get('first_game_results', {}).get('number')) == int(game_number):
+                game['first_game_results']['score'] = new_score
+                break
+            elif int(game.get('second_game_results', {}).get('number')) == int(game_number):
+                game['second_game_results']['score'] = new_score
+                break
+        else:
+            return False
+
+        collection.update_one(
+            {'chat': chat_id, 'games.game_id': game['game_id']},
+            {'$set': {'games.$': game}}
+        )
+
+        return True
+
+    return False
 
 
 # Обновляем статус турнира
@@ -169,6 +198,29 @@ def get_tournament_status_by_id(tournament_id):
         return None
 
     return tournament_doc.get('status', None)
+
+
+# Получаем ID чата по ID турнирв
+def get_tournament_chat_id_by_id(tournament_id):
+    tournament_doc = collection.find_one({"id": tournament_id})
+
+    if not tournament_doc:
+        return None
+
+    return int(tournament_doc.get('chat', None))
+
+
+# Получаем и обновляем текущий номер игры
+def get_current_game(chat_id):
+    tournament_doc = collection.find_one({'chat': chat_id})
+
+    if not tournament_doc:
+        return None
+
+    game_number = tournament_doc.get('current_game_number', None)
+    collection.update_one({'chat': chat_id}, {'$set': {'current_game_number': game_number + 1}})
+
+    return game_number
 
 
 # Получаем статус турнира по ID чата
@@ -231,6 +283,7 @@ def get_tournament_games_by_chat_id(chat):
     return tournament_doc.get('games', None)
 
 
+# Получаем сыгранные игры
 def get_played_games_by_chat_id(chat):
     tournament_doc = collection.find_one({"chat": chat})
 

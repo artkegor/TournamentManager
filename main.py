@@ -5,6 +5,7 @@ from datetime import datetime
 from bot.bot import bot
 
 
+# Подключаемся к БД для дампов
 def connect_to_mongodb():
     client = pymongo.MongoClient('mongodb://localhost:27017/')
     db = client['Tournaments']
@@ -13,12 +14,14 @@ def connect_to_mongodb():
     return tournaments_collection, users_collection
 
 
+# Приводим данные в порядок
 def fetch_data(tournaments_collection, users_collection):
     tournaments_data = list(tournaments_collection.find())
     users_data = list(users_collection.find())
     return tournaments_data, users_data
 
 
+# Сохраняем снимок БД в файл
 def save_data_to_file(data, filename):
     with open(filename, 'w') as file:
         file.write("Tournaments Data:\n")
@@ -29,6 +32,7 @@ def save_data_to_file(data, filename):
             file.write(str(user) + "\n")
 
 
+# Создаем снимок
 def exit_dump():
     tournaments_collection, users_collection = connect_to_mongodb()
     data = fetch_data(tournaments_collection, users_collection)

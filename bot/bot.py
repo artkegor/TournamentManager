@@ -70,6 +70,9 @@ def start_message(message):
                     elif reg == 'good':
                         bot.send_message(message.chat.id, 'Ты присоединился к турниру.\n'
                                                           'Ожидай жеребьевки.')
+
+                        chat_id = tr_db.get_tournament_chat_id_by_id(str(args))
+                        bot.send_message(chat_id, f'@{message.from_user.username} присоединился к турниру!')
                 else:
                     bot.send_message(message.chat.id, 'Вы уже участвуете в другом турнире.')
             else:
@@ -442,86 +445,118 @@ def set_message(message):
 @bot.message_handler(commands=['admin_set'])
 def set_message(message):
     threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
-    if ' ' in message.text:
-        if len(message.text.split()) != 4:
-            bot.send_message(message.chat.id, 'Чтобы внести игру, введите ники оппонентов и счет.')
-        else:
-            cmd, username1, username2, score = message.text.split()
-            first_player = user_db.get_user_document_by_username(username1[1:])['userId']
-            second_player = user_db.get_user_document_by_username(username2[1:])['userId']
-            chat_id_1 = user_db.get_user_document_by_username(username1[1:])['current_chat']
-            chat_id_2 = user_db.get_user_document_by_username(username2[1:])['current_chat']
-
-            if chat_id_1 != chat_id_2:
-                bot.send_message(message.chat.id,
-                                 'Игроки участвуют в разных турнирах, или '
-                                 'один из игроков не присоединился к соревнованиям.')
-            else:
-                game = tr_db.find_game_by_users_and_chat(first_player, second_player, chat_id_1)
-                if not game:
-                    if not tr_db.get_tournament_users_by_chat_id(chat_id_1):
-                        bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
+    if message.chat.type in ['group', 'supergroup']:
+        admins = bot.get_chat_administrators(message.chat.id)
+        for admin in admins:
+            if admin.user.id == message.from_user.id:
+                if ' ' in message.text:
+                    if len(message.text.split()) != 4:
+                        bot.send_message(message.chat.id, 'Чтобы внести игру, введите ники оппонентов и счет.')
                     else:
-                        tourne = tr_db.get_tournament_type_by_chat_id(chat_id_1)
-                        if tourne == 'free':
-                            tr_db.add_new_game(chat_id_1, first_player, second_player)
+                        cmd, username1, username2, score = message.text.split()
+                        first_player = user_db.get_user_document_by_username(username1[1:])['userId']
+                        second_player = user_db.get_user_document_by_username(username2[1:])['userId']
+                        chat_id_1 = user_db.get_user_document_by_username(username1[1:])['current_chat']
+                        chat_id_2 = user_db.get_user_document_by_username(username2[1:])['current_chat']
+
+                        if chat_id_1 != chat_id_2:
+                            bot.send_message(message.chat.id,
+                                             'Игроки участвуют в разных турнирах, или '
+                                             'один из игроков не присоединился к соревнованиям.')
+                        else:
                             game = tr_db.find_game_by_users_and_chat(first_player, second_player, chat_id_1)
-                            games_left = game['games_left']
-                            game_id = game['game_id']
-                            with open(f'bot/cache/{message.from_user.id}.txt', 'w') as f:
-                                f.write(
-                                    f'{chat_id_1}^{game_id}^{score}^{games_left}^{first_player}^{second_player}')
+                            if not game:
+                                if not tr_db.get_tournament_users_by_chat_id(chat_id_1):
+                                    bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
+                                else:
+                                    tourne = tr_db.get_tournament_type_by_chat_id(chat_id_1)
+                                    if tourne == 'free':
+                                        tr_db.add_new_game(chat_id_1, first_player, second_player)
+                                        game = tr_db.find_game_by_users_and_chat(first_player, second_player, chat_id_1)
+                                        games_left = game['games_left']
+                                        game_id = game['game_id']
+                                        with open(f'bot/cache/{message.from_user.id}.txt', 'w') as f:
+                                            f.write(
+                                                f'{chat_id_1}^{game_id}^{score}^{games_left}^{first_player}^{second_player}')
 
-                            bot.send_message(message.chat.id, 'Вы хотите внести игру?\n\n'
-                                                              f'{username1} '
-                                                              f'{score} {username2}',
-                                             reply_markup=mk.confirm_markup(message.from_user.id))
-                        else:
-                            bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
-                else:
-                    tourne = tr_db.get_tournament_type_by_chat_id(chat_id_1)
-                    if tourne == 'free':
-                        if game['games_left'] > 0:
-                            games_left = game['games_left']
-                            game_id = game['game_id']
-                            with open(f'bot/cache/{message.from_user.id}.txt', 'w') as f:
-                                f.write(
-                                    f'{chat_id_1}^{game_id}^{score}^{games_left}^{first_player}^{second_player}')
-
-                            bot.send_message(message.chat.id, 'Вы хотите внести игру?\n\n'
-                                                              f'{username1} '
-                                                              f'{score} {username2}',
-                                             reply_markup=mk.confirm_markup(message.from_user.id))
-                        else:
-                            bot.send_message(message.chat.id, 'Вы уже внесли две игры с этим пользователями.')
-                    elif tourne == 'fix':
-                        game_date_str = game['date']
-                        game_date = datetime.strptime(game_date_str, '%d/%m/%y')
-                        today_date = datetime.now()
-
-                        if game_date.date() == today_date.date():
-                            games_left = game['games_left']
-                            if games_left > 0:
-                                game_id = game['game_id']
-                                with open(f'bot/cache/{message.from_user.id}.txt', 'w') as f:
-                                    f.write(
-                                        f'{chat_id_1}^{game_id}^{score}^{games_left}^{first_player}^{second_player}')
-
-                                bot.send_message(message.chat.id, 'Вы хотите внести игру?\n\n'
-                                                                  f'{username1} '
-                                                                  f'{score} {username2}',
-                                                 reply_markup=mk.confirm_markup(message.from_user.id))
-
+                                        bot.send_message(message.chat.id, 'Вы хотите внести игру?\n\n'
+                                                                          f'{username1} '
+                                                                          f'{score} {username2}',
+                                                         reply_markup=mk.confirm_markup(message.from_user.id))
+                                    else:
+                                        bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
                             else:
-                                bot.send_message(message.chat.id, 'Вы уже внесли две игры с этими пользователями.')
-                        else:
-                            bot.send_message(message.chat.id, 'Сегодня вы играете с другим игроком.')
+                                tourne = tr_db.get_tournament_type_by_chat_id(chat_id_1)
+                                if tourne == 'free':
+                                    if game['games_left'] > 0:
+                                        games_left = game['games_left']
+                                        game_id = game['game_id']
+                                        with open(f'bot/cache/{message.from_user.id}.txt', 'w') as f:
+                                            f.write(
+                                                f'{chat_id_1}^{game_id}^{score}^{games_left}^{first_player}^{second_player}')
 
+                                        bot.send_message(message.chat.id, 'Вы хотите внести игру?\n\n'
+                                                                          f'{username1} '
+                                                                          f'{score} {username2}',
+                                                         reply_markup=mk.confirm_markup(message.from_user.id))
+                                    else:
+                                        bot.send_message(message.chat.id,
+                                                         'Вы уже внесли две игры с этим пользователями.')
+                                elif tourne == 'fix':
+                                    game_date_str = game['date']
+                                    game_date = datetime.strptime(game_date_str, '%d/%m/%y')
+                                    today_date = datetime.now()
+
+                                    if game_date.date() == today_date.date():
+                                        games_left = game['games_left']
+                                        if games_left > 0:
+                                            game_id = game['game_id']
+                                            with open(f'bot/cache/{message.from_user.id}.txt', 'w') as f:
+                                                f.write(
+                                                    f'{chat_id_1}^{game_id}^{score}^{games_left}^{first_player}^{second_player}')
+
+                                            bot.send_message(message.chat.id, 'Вы хотите внести игру?\n\n'
+                                                                              f'{username1} '
+                                                                              f'{score} {username2}',
+                                                             reply_markup=mk.confirm_markup(message.from_user.id))
+
+                                        else:
+                                            bot.send_message(message.chat.id,
+                                                             'Вы уже внесли две игры с этими пользователями.')
+                                    else:
+                                        bot.send_message(message.chat.id, 'Сегодня вы играете с другим игроком.')
+
+                else:
+                    bot.send_message(message.chat.id, 'ℹ️ Чтобы внести игру, введите сообщение в формате\n\n'
+                                                      '<code>/set [@ник соперника1] '
+                                                      '[@ник соперника2] [счет (соперник1:соперник2)]</code>',
+                                     parse_mode='html')
     else:
-        bot.send_message(message.chat.id, 'ℹ️ Чтобы внести игру, введите сообщение в формате\n\n'
-                                          '<code>/set [@ник соперника1] '
-                                          '[@ник соперника2] [счет (соперник1:соперник2)]</code>',
-                         parse_mode='html')
+        bot.send_message(message.chat.id, 'Команда применима только в группе.')
+
+
+@bot.message_handler(commands=['edit'])
+def set_message(message):
+    threading.Timer(1.0, lambda: bot.delete_message(message.chat.id, message.message_id)).start()
+    if message.chat.type in ['group', 'supergroup']:
+        admins = bot.get_chat_administrators(message.chat.id)
+        for admin in admins:
+            if admin.user.id == message.from_user.id:
+                if ' ' in message.text:
+                    if len(message.text.split()) != 3:
+                        bot.send_message(message.chat.id, 'Введите номер игры и новый счет.')
+                    else:
+                        cmd, number, score = message.text.split()
+                        if tr_db.update_game_score(message.chat.id, number, score):
+                            bot.send_message(message.chat.id, 'Результат игры обновлен')
+                        else:
+                            bot.send_message(message.chat.id, 'Произошла ошибка.')
+                else:
+                    bot.send_message(message.chat.id, 'ℹ️ Чтобы изменить счет игры, введите сообщение в формате\n\n'
+                                                      '<code>/edit [номер игры] [новый счет]</code>\n\n'
+                                                      'Найти номер игры можно в /games.', parse_mode='html')
+    else:
+        bot.send_message(message.chat.id, 'Команда применима только в группе.')
 
 
 @bot.message_handler(commands=['table'])
