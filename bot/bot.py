@@ -787,9 +787,3 @@ def query_text(query):
                         )
 
         bot.answer_inline_query(query.id, [result])
-
-# TODO:
-# 1. Клонировать функцию для вставки игр (107 строчка, tournament_database.py). Вырезать games_left.
-# Оставить формировку JSON-документа и update_one.
-# 2. На основе этого сделать команду /edit для админа, в качестве шаблона взять /admin_set.
-# 3. Размер колонн в табличках.
