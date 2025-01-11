@@ -14,6 +14,7 @@ def print_all_data():
         print(document)
 
 
+# Insert
 # Вставляем в БД новый турнир
 def insert_tournament(tournament_id, chat_id, status, type, name_entered):
     existing_tournament = collection.find_one({"chat": chat_id})
@@ -35,6 +36,7 @@ def insert_tournament(tournament_id, chat_id, status, type, name_entered):
     collection.insert_one(new_tournament)
 
 
+# Update
 # Вставляем пользователя в турнир
 def add_user_to_tournament(tournament_id, user_id):
     tournament_doc = collection.find_one({"id": tournament_id})
@@ -180,6 +182,7 @@ def update_tournament_schedule_type(tournament_id, status):
     collection.update_one({'id': tournament_id}, {'$set': {'type': status}})
 
 
+# Find
 # Получаем игру по ID-игры и турнира
 def find_game_by_id(chat_id, game_id):
     document = collection.find_one({'chat': chat_id})
@@ -335,6 +338,7 @@ def remove_user_from_tournament(chat_id, user_id):
     )
 
 
+# Delete
 # Удаляем турнир
 def delete_tournament_by_chat_id(chat_id):
     collection.delete_one({"chat": chat_id})

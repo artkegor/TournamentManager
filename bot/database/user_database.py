@@ -11,6 +11,7 @@ def print_all_data(collection):
         print(document)
 
 
+# Update
 # Вставляем в БД нового пользователя
 def insert_user(userid, username):
     filter = {'userId': userid}
@@ -38,6 +39,7 @@ def update_users_with_current_tournament(current_chat, users):
             collection.update_one({"userId": i}, {"$set": {'current_chat': current_chat}}, upsert=False)
 
 
+# Find
 # Получаем пользователя по ID
 def get_user_document_by_userid(userid):
     user_document = collection.find_one({'userId': userid})
