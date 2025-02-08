@@ -378,10 +378,10 @@ def register_message_handlers(bot: TeleBot):
                 helper.save_tournament_results(tournament_id, name, new_dict)
                 curr = str(datetime.now().strftime("%d-%m-%y_%H-%M"))
                 bot.send_document(message.chat.id,
-                                  document=open(f'bot/utilities/data/res_{tournament_id}.png', 'rb'),
+                                  document=open(f'bot/utils/data/res_{tournament_id}.png', 'rb'),
                                   caption='Текущие результаты ☝\n\nВ - Н - П',
                                   visible_file_name=f'Результаты турнира {curr}.png')
-                os.remove(f'bot/utilities/data/res_{tournament_id}.png')
+                os.remove(f'bot/utils/data/res_{tournament_id}.png')
             else:
                 bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
         else:
@@ -403,10 +403,10 @@ def register_message_handlers(bot: TeleBot):
                 helper.save_match_table(data, tournament_id, name)
                 curr = str(datetime.now().strftime("%d-%m-%y_%H-%M"))
                 bot.send_document(message.chat.id,
-                                  document=open(f'bot/utilities/data/played_{tournament_id}.png', 'rb'),
+                                  document=open(f'bot/utils/data/played_{tournament_id}.png', 'rb'),
                                   caption='Сыгранные игры ☝',
                                   visible_file_name=f'Результаты игр {curr}.png')
-                os.remove(f'bot/utilities/data/played_{tournament_id}.png')
+                os.remove(f'bot/utils/data/played_{tournament_id}.png')
         else:
             bot.send_message(message.chat.id, 'Команда применима только в группе.')
 
@@ -444,15 +444,15 @@ def register_message_handlers(bot: TeleBot):
 
                 bot.delete_message(message.chat.id, message.message_id + 1)
 
-                bot.send_document(message.chat.id, open(f'bot/utilities/data/res_{tournament_id}.png', 'rb'),
+                bot.send_document(message.chat.id, open(f'bot/utils/data/res_{tournament_id}.png', 'rb'),
                                   visible_file_name='Результаты.png')
                 bot.send_photo(message.chat.id,
-                               photo=open(f'bot/utilities/data/finish.jpg', 'rb'),
+                               photo=open(f'bot/utils/data/finish.jpg', 'rb'),
                                caption='Турнир завершен!\n\n'
                                        f'{top_players_string}')
 
                 tr_db.delete_tournament_by_chat_id(message.chat.id)
-                os.remove(f'bot/utilities/data/res_{tournament_id}.png')
+                os.remove(f'bot/utils/data/res_{tournament_id}.png')
             else:
                 bot.send_message(message.chat.id, 'Никакой турнир сейчас не запущен.')
         else:

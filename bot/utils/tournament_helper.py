@@ -70,7 +70,7 @@ def generate_and_save_tables(games, tournament_id, group_name):
     fig.savefig(buf, format='png', bbox_inches='tight')
     buf.seek(0)
     img = Image.open(buf)
-    img.save(f'bot/utilities/data/{tournament_id}.png')
+    img.save(f'bot/utils/data/{tournament_id}.png')
 
 
 # Подсчитываем очки
@@ -209,7 +209,7 @@ def save_tournament_results(tournament_id, group_title, results):
     buf.seek(0)
     img = Image.open(buf)
 
-    img.save(f'bot/utilities/data/res_{tournament_id}.png')
+    img.save(f'bot/utils/data/res_{tournament_id}.png')
 
 
 # Сыгранные игры
@@ -249,4 +249,4 @@ def save_match_table(match_data, tournament_id, group_title):
     fig.savefig(buf, format='png', bbox_inches='tight')
     buf.seek(0)
     img = Image.open(buf)
-    img.save(f'bot/utilities/data/played_{tournament_id}.png')
+    img.save(f'bot/utils/data/played_{tournament_id}.png')

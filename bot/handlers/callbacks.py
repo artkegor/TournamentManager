@@ -92,7 +92,7 @@ def register_callback_handlers(bot: TeleBot):
 
                     if tournament_type == 'free':
                         bot.delete_message(call.message.chat.id, call.message.message_id)
-                        bot.send_photo(call.message.chat.id, photo=open(f'bot/utilities/data/start.jpg', 'rb'),
+                        bot.send_photo(call.message.chat.id, photo=open(f'bot/utils/data/start.jpg', 'rb'),
                                        caption='Турнир объявляется открытым!\n\n'
                                                f'🫂 Зарегистрированы: {", ".join(str(bot.get_chat_member(call.message.chat.id, x).user.first_name) for x in users)}\n\n'
                                                f'❕ Турнир проводится в свободном расписании, '
@@ -127,10 +127,10 @@ def register_callback_handlers(bot: TeleBot):
                         helper.generate_and_save_tables(games, tournament_id, entered_name)
 
                         bot.send_document(call.message.chat.id,
-                                          document=open(f'bot/utilities/data/{tournament_id}.png', 'rb'),
+                                          document=open(f'bot/utils/data/{tournament_id}.png', 'rb'),
                                           visible_file_name='Расписание.png')
                         bot.send_photo(call.message.chat.id,
-                                       photo=open(f'bot/utilities/data/start.jpg', 'rb'),
+                                       photo=open(f'bot/utils/data/start.jpg', 'rb'),
                                        caption='Расписание ☝\n\n'
                                                'Турнир объявляется открытым!\n'
                                                f'❕Игры проводится по фиксированным датам.',
@@ -141,7 +141,7 @@ def register_callback_handlers(bot: TeleBot):
                                          '<code>/set [@ник соперника] [счет (свой:соперника)]</code>',
                                          parse_mode='html')
 
-                        os.remove(f'bot/utilities/data/{tournament_id}.png')
+                        os.remove(f'bot/utils/data/{tournament_id}.png')
 
                 threading.Thread(target=starter_func(tournament_type, name)).start()
 
